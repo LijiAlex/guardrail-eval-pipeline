@@ -1,0 +1,28 @@
+# MediBot: the role-aware retrieval assistant this pipeline watches.
+# https://github.com/LijiAlex/medibot
+name: medibot
+adapter: medibot
+endpoint: http://localhost:8000
+
+# What MediBot can supply. Not read by any code until B3. `contexts` becomes true in A1;
+# a target that cannot supply passages has its grounding check and three RAGAS metrics
+# reported as unavailable rather than scored zero.
+capabilities:
+  contexts: false
+  citations: true
+  token_usage: false
+
+# principal -> the account to log in as. The KEY must be what MediBot reports as its
+# `role`, because the output guardrail compares the two.
+principals:
+  doctor: dr.mehta
+  nurse: nurse.priya
+  billing_executive: billing.ravi
+  technician: tech.anand
+  admin: admin.sys
+
+# MediBot's demo accounts: the password is the username plus this suffix. A target with
+# real accounts would name a secret-store key instead.
+auth:
+  kind: jwt_login
+  password_suffix: "-demo"

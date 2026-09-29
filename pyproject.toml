@@ -1,0 +1,27 @@
+[project]
+name = "guardrail-eval-pipeline"
+version = "0.1.0"
+description = "A guardrail, observability and evaluation layer that wraps any RAG or agentic chatbot."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "pydantic>=2.10.6",
+    "python-dotenv>=1.2.3",
+    "pyyaml>=6.0.3",
+    "uvicorn>=0.53.0,<0.54.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=9.1.1"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/guardrail_eval_pipeline"]
