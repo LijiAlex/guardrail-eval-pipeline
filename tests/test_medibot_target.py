@@ -41,9 +41,7 @@ BODY_AFTER_A1 = {
                 "section_title": "1. Antimicrobials",
                 "collection": "clinical",
             }
-        ],
-        "tokens": {"input_tokens": 420, "output_tokens": 31, "total_tokens": 451},
-        "timings": {"retrieve_ms": 40.2, "rerank_ms": 180.5, "generate_ms": 700.0},
+        ]
     },
 }
 
@@ -231,17 +229,19 @@ def test_today_medibot_gives_no_contexts_and_that_is_reported_honestly():
     assert result.tokens is None
 
 
-def test_after_a1_the_envelope_becomes_contexts_scores_scope_and_tokens():
+def test_the_envelope_becomes_contexts_with_scores_and_scope():
+    """The envelope carries the passages only. Token usage and stage durations come from
+    the trace, not from the target's response body."""
     result = make_target(BODY_AFTER_A1).ask("dose?", token="t")
     assert result.has_contexts is True
     context = result.contexts[0]
     assert context.text == "Meropenem. Standard Dose = 1 g Q8H. Tier = 3."
     assert context.score == 6.38
     assert context.label == "drug_formulary.pdf / 1. Antimicrobials"
-    # The field the output scope check reads. Dropping it left gap 1 unimplementable.
+    # The field the output scope check reads.
     assert context.scope == "clinical"
-    assert result.tokens == {"input_tokens": 420, "output_tokens": 31, "total_tokens": 451}
-    assert result.timings["rerank_ms"] == 180.5
+    assert result.tokens is None
+    assert result.timings is None
 
 
 def test_citations_come_from_sources_even_when_contexts_do_not():
