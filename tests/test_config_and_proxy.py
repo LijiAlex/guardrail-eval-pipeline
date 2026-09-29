@@ -289,3 +289,31 @@ def test_an_unlisted_origin_gets_no_cors_header(stub_client):
         headers={"Origin": "http://evil.example", "Access-Control-Request-Method": "POST"},
     )
     assert "access-control-allow-origin" not in response.headers
+
+
+# --- the contract an existing UI depends on ----------------------------------
+# The fields the target's own frontend declares and renders. If `/chat` stops returning
+# exactly these, routing that UI through this pipeline breaks — silently, because
+# JavaScript reads a missing field as undefined rather than raising.
+FRONTEND_ANSWER_TYPE = {"answer", "sources", "retrieval_type", "role", "sql", "refusal"}
+FRONTEND_SOURCE_TYPE = {"source_document", "section_title", "collection"}
+
+
+def test_chat_returns_exactly_what_the_targets_ui_declares(medibot_client):
+    """This is what makes "point the browser at the pipeline" a one-line change. Without
+    it the UI needs a mapping layer, and every later change to the response can break it."""
+    client, _ = medibot_client
+    body = client.post("/chat", json={"question": "q"}, headers=AUTH).json()
+    assert set(body) == FRONTEND_ANSWER_TYPE
+    assert set(body["sources"][0]) == FRONTEND_SOURCE_TYPE
+
+
+def test_a_blocked_response_still_satisfies_the_ui_contract(medibot_client):
+    """A withheld answer must keep every field. JavaScript reading `sources.length` on a
+    missing field throws, and the page a user sees is blank rather than refused."""
+    from guardrail_eval_pipeline.adapters.medibot import MediBotTarget
+    from guardrail_eval_pipeline.contracts import TargetResponse
+
+    rendered = MediBotTarget.render(TargetResponse(answer="I can't help with that."), withhold=True)
+    assert set(rendered) == FRONTEND_ANSWER_TYPE
+    assert rendered["sources"] == []

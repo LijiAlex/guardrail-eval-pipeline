@@ -37,10 +37,10 @@ cannot certify itself.
 
 | Phase | What it adds | State |
 |---|---|---|
-| **A0** | Repo, the target contract, two adapters, the proxy | **done** — 73 tests |
-| A1 | MediBot returns the passages it retrieved, its token usage and its timings | next |
-| A2 | MediBot's internal steps join this pipeline's trace | planned |
-| A3 | MediBot's own UI routed through here, so the guardrails cannot be bypassed | planned |
+| **A0** | Repo, the target contract, two adapters, the proxy | **done** — 75 tests |
+| A1 | MediBot returns the passages it retrieved, with their scores | **done** |
+| A2 | MediBot's internal steps are traced, and accept this pipeline's trace context | **done** |
+| A3 | MediBot's own UI routed through here, so the guardrails cannot be bypassed | **done** |
 | B1–B3 | The guardrails themselves, input and output, on AWS Bedrock | planned |
 | C1–C2 | Tracing and a structured event log | planned |
 | D1–D5 | Labelled evaluation set, heuristics, RAGAS, an LLM judge, online sampling | planned |
@@ -158,6 +158,43 @@ Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 uv sync
 ```
 
+### One command
+
+`./run.sh` starts the target and the pipeline in order, waits until each answers its
+health check, and stops both on Ctrl-C. It expects the MediBot repository beside this one;
+set `MEDIBOT_HOME` if it lives elsewhere.
+
+```bash
+./run.sh              # both services
+./run.sh --eval       # and ask the target for the passages it retrieved
+```
+
+```
+  target   : .../Assignment 2 medibot
+  passages : not exposed (pass --eval to turn them on)
+
+  starting the target on :8000 ...
+  target ready after 7s
+  starting the pipeline on :9000 ...
+  pipeline ready after 1s
+
+  {"status":"ok","target":"medibot","endpoint":"http://localhost:8000"}
+```
+
+Order matters, which is why the script enforces it: the pipeline answers `502 target
+unavailable` for as long as the target is unreachable. The target is the slow half — it
+loads an embedding model and a cross-encoder before it will answer.
+
+The `--eval` flag sets `MEDIBOT_EXPOSE_EVAL` on the target, which adds the retrieved
+passages to its response so the pipeline can check an answer against them. Nothing needs
+it yet; the grounding check does.
+
+Logs go to `/tmp/medibot.log` and `/tmp/guardrail-pipeline.log`, since two servers writing
+to one terminal is unreadable. The script does not start the UI — that command is printed
+when both are up.
+
+### Or by hand
+
 **1. Start the target.** In the MediBot repository — it has its own setup first (a Groq
 API key, and a one-off step to build its search index; see its README):
 
@@ -247,12 +284,36 @@ system rather than a deployment.
 ### Tests
 
 ```bash
-.venv/bin/python -m pytest        # 73 tests, under a second
+.venv/bin/python -m pytest        # 75 tests, under a second
 ```
 
 They run with no target, no model and no network — see *StubTarget* below.
 
 ---
+
+## Putting the target's UI behind this
+
+MediBot ships a web UI that normally talks straight to it. Point that UI here instead and
+every question it sends passes through the guardrails, with no other route available:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:9000 pnpm dev
+```
+
+**No code changes in the UI.** `/chat` answers in the target's own response shape, and
+`/login` and `/collections/{role}` are forwarded, so the app cannot tell the difference.
+A test pins that contract — if `/chat` ever stopped returning exactly the fields that UI
+declares, the page would break silently, because JavaScript reads a missing field as
+`undefined` rather than raising.
+
+Unsetting the variable puts the UI straight back on the target. Both modes keep working,
+which is what keeps the target a standalone application rather than something that now
+needs this pipeline in order to boot.
+
+> **A caveat worth stating.** The target's own port stays open on localhost, so a
+> developer can still call it directly and skip the guardrails. Nothing off the machine
+> can — uvicorn binds `127.0.0.1` — and in a real deployment this is a network concern
+> rather than an application one. It is documented rather than papered over.
 
 ## Wiring up a different system
 
@@ -355,6 +416,7 @@ its models. It is not a hang.
 ## Layout
 
 ```
+run.sh                               starts the target and the pipeline together
 targets/<name>.yaml                  which systems we watch, and how to reach them
 src/guardrail_eval_pipeline/
   contracts.py                       the shared vocabulary every component reads
@@ -362,7 +424,7 @@ src/guardrail_eval_pipeline/
   service.py                         the guarded path, shared by the API and the eval runner
   adapters/<name>.py                 how to talk to one system, and translate its answers
   api/app.py                         the HTTP front door
-tests/                               73 tests, all offline
+tests/                               75 tests, all offline
 ```
 
 ---
