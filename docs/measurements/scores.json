@@ -1,0 +1,434 @@
+[
+  {
+    "case": "real",
+    "role": "doctor",
+    "question": "What is the standard dose of meropenem?",
+    "GROUNDING": 0.93,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "doctor",
+    "question": "What is the standard dose of meropenem?",
+    "GROUNDING": 0.99,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "doctor",
+    "question": "What is the standard dose of meropenem?",
+    "GROUNDING": 0.01,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "doctor",
+    "question": "What is the standard dose of meropenem?",
+    "GROUNDING": 0.15,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "doctor",
+    "question": "What is the standard dose of meropenem?",
+    "GROUNDING": 0.96,
+    "RELEVANCE": 5e-324,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "doctor",
+    "question": "Meropenem 1 g every 8 hours, which formulary tier is that?",
+    "GROUNDING": 0.97,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "doctor",
+    "question": "Meropenem 1 g every 8 hours, which formulary tier is that?",
+    "GROUNDING": 0.98,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "doctor",
+    "question": "Meropenem 1 g every 8 hours, which formulary tier is that?",
+    "GROUNDING": 0.08,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "doctor",
+    "question": "Meropenem 1 g every 8 hours, which formulary tier is that?",
+    "GROUNDING": 0.19,
+    "RELEVANCE": 0.97,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "doctor",
+    "question": "Meropenem 1 g every 8 hours, which formulary tier is that?",
+    "GROUNDING": 0.98,
+    "RELEVANCE": 5e-324,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "doctor",
+    "question": "What are the ECG interpretation flags?",
+    "GROUNDING": 0.19,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "doctor",
+    "question": "What are the ECG interpretation flags?",
+    "GROUNDING": 0.97,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "doctor",
+    "question": "What are the ECG interpretation flags?",
+    "GROUNDING": 0.0,
+    "RELEVANCE": 0.85,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "doctor",
+    "question": "What are the ECG interpretation flags?",
+    "GROUNDING": 0.1,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "doctor",
+    "question": "What are the ECG interpretation flags?",
+    "GROUNDING": 0.18,
+    "RELEVANCE": 0.05,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "doctor",
+    "question": "Which protocol covers ICD-10 I21.4?",
+    "GROUNDING": 0.91,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "doctor",
+    "question": "Which protocol covers ICD-10 I21.4?",
+    "GROUNDING": 0.99,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "doctor",
+    "question": "Which protocol covers ICD-10 I21.4?",
+    "GROUNDING": 0.09,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "doctor",
+    "question": "Which protocol covers ICD-10 I21.4?",
+    "GROUNDING": 0.01,
+    "RELEVANCE": 0.61,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "doctor",
+    "question": "Which protocol covers ICD-10 I21.4?",
+    "GROUNDING": 0.75,
+    "RELEVANCE": 0.04,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "nurse",
+    "question": "What is the hand hygiene protocol before entering the ICU?",
+    "GROUNDING": 0.25,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "nurse",
+    "question": "What is the hand hygiene protocol before entering the ICU?",
+    "GROUNDING": 0.83,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "nurse",
+    "question": "What is the hand hygiene protocol before entering the ICU?",
+    "GROUNDING": 0.01,
+    "RELEVANCE": 0.96,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "nurse",
+    "question": "What is the hand hygiene protocol before entering the ICU?",
+    "GROUNDING": 0.21,
+    "RELEVANCE": 5e-324,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "nurse",
+    "question": "Which IV cannula size for a paediatric patient under 5 kg?",
+    "GROUNDING": 0.91,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "nurse",
+    "question": "Which IV cannula size for a paediatric patient under 5 kg?",
+    "GROUNDING": 0.99,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "nurse",
+    "question": "Which IV cannula size for a paediatric patient under 5 kg?",
+    "GROUNDING": 0.01,
+    "RELEVANCE": 0.99,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "nurse",
+    "question": "Which IV cannula size for a paediatric patient under 5 kg?",
+    "GROUNDING": 0.13,
+    "RELEVANCE": 0.98,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "nurse",
+    "question": "Which IV cannula size for a paediatric patient under 5 kg?",
+    "GROUNDING": 0.82,
+    "RELEVANCE": 5e-324,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "technician",
+    "question": "What does fault code F-05 mean on the infusion pump?",
+    "GROUNDING": 0.96,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "technician",
+    "question": "What does fault code F-05 mean on the infusion pump?",
+    "GROUNDING": 0.96,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "technician",
+    "question": "What does fault code F-05 mean on the infusion pump?",
+    "GROUNDING": 0.0,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "technician",
+    "question": "What does fault code F-05 mean on the infusion pump?",
+    "GROUNDING": 0.12,
+    "RELEVANCE": 0.26,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "technician",
+    "question": "What does fault code F-05 mean on the infusion pump?",
+    "GROUNDING": 0.99,
+    "RELEVANCE": 0.07,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "technician",
+    "question": "How do I run a sterilisation cycle on the autoclave?",
+    "GROUNDING": 0.95,
+    "RELEVANCE": 0.93,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "technician",
+    "question": "How do I run a sterilisation cycle on the autoclave?",
+    "GROUNDING": 0.95,
+    "RELEVANCE": 0.93,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "technician",
+    "question": "How do I run a sterilisation cycle on the autoclave?",
+    "GROUNDING": 0.01,
+    "RELEVANCE": 0.98,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "technician",
+    "question": "How do I run a sterilisation cycle on the autoclave?",
+    "GROUNDING": 0.05,
+    "RELEVANCE": 0.67,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "technician",
+    "question": "How do I run a sterilisation cycle on the autoclave?",
+    "GROUNDING": 0.94,
+    "RELEVANCE": 5e-324,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "billing_executive",
+    "question": "How do I submit a cashless claim?",
+    "GROUNDING": 0.85,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "billing_executive",
+    "question": "How do I submit a cashless claim?",
+    "GROUNDING": 0.98,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "billing_executive",
+    "question": "How do I submit a cashless claim?",
+    "GROUNDING": 0.03,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "billing_executive",
+    "question": "How do I submit a cashless claim?",
+    "GROUNDING": 0.02,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "billing_executive",
+    "question": "How do I submit a cashless claim?",
+    "GROUNDING": 0.79,
+    "RELEVANCE": 0.3,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "billing_executive",
+    "question": "What is the billing code for an MRI scan?",
+    "GROUNDING": 0.46,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "billing_executive",
+    "question": "What is the billing code for an MRI scan?",
+    "GROUNDING": 0.98,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "billing_executive",
+    "question": "What is the billing code for an MRI scan?",
+    "GROUNDING": 0.0,
+    "RELEVANCE": 0.65,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "billing_executive",
+    "question": "What is the billing code for an MRI scan?",
+    "GROUNDING": 0.01,
+    "RELEVANCE": 0.93,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "billing_executive",
+    "question": "What is the billing code for an MRI scan?",
+    "GROUNDING": 0.7,
+    "RELEVANCE": 5e-324,
+    "detections": []
+  },
+  {
+    "case": "real",
+    "role": "nurse",
+    "question": "How many days of casual leave do staff get?",
+    "GROUNDING": 0.98,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "real_normalised",
+    "role": "nurse",
+    "question": "How many days of casual leave do staff get?",
+    "GROUNDING": 0.99,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mismatched",
+    "role": "nurse",
+    "question": "How many days of casual leave do staff get?",
+    "GROUNDING": 0.06,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "mutated",
+    "role": "nurse",
+    "question": "How many days of casual leave do staff get?",
+    "GROUNDING": 0.02,
+    "RELEVANCE": 1.0,
+    "detections": []
+  },
+  {
+    "case": "off_topic",
+    "role": "nurse",
+    "question": "How many days of casual leave do staff get?",
+    "GROUNDING": 0.98,
+    "RELEVANCE": 5e-324,
+    "detections": []
+  }
+]

@@ -7,6 +7,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "httpx>=0.28.1",
     "pydantic>=2.10.6",
+    "boto3==1.43.100",
     "python-dotenv>=1.2.3",
     "pyyaml>=6.0.3",
     "uvicorn>=0.53.0,<0.54.0",

@@ -1,0 +1,182 @@
+[
+  {
+    "role": "doctor",
+    "question": "What is the standard dose of meropenem?",
+    "answer": "The formulary lists the standard dose for meropenem as **1\u202fg every\u202f8\u202fhours (Q8H)**\u30101\u3011.",
+    "contexts": [
+      "Approved Drug Formulary > 1. Antimicrobials\n\n Clarithromycin, Class = Macrolide. Clarithromycin, Route = Oral. Clarithromycin, Standard Dose = 500 mg BD. Clarithromycin, Tier = 2. Clarithromycin, Storage = Room temp. Clarithromycin, Notes = Many drug interactions. Meropenem, Class = Carbapenem. Meropenem, Route = IV. Meropenem, Standard Dose = 1 g Q8H. Meropenem, Tier = 3. Meropenem, Storage = Room temp. Meropenem, Notes = HOD approval required. Vancomycin, Class = Glycopeptide. Vancomycin, Route = IV. Vancomycin, Standard Dose = 15-20 mg/kg Q12H. Vancomycin, Tier = 3. Vancomycin, Storage = Room temp. Vancomycin, Notes = TDM; trough 15-20 mg/L. Linezolid, Class =",
+      "Approved Drug Formulary > 6. Renal Dose Adjustment (selected drugs)\nDoses  below  are  illustrative;  confirm  against  the  latest  renal  dosing  reference  and  the  patient's  eGFR  before prescribing.\nMetformin, eGFR 30-50 = Max 1 g/day; review. Metformin, eGFR < 30 = Avoid. Meropenem, eGFR 30-50 = Reduce frequency to Q12H. Meropenem, eGFR < 30 = Q24H; specialist input. Vancomycin, eGFR 30-50 = Extend interval per TDM. Vancomycin, eGFR < 30 = Per TDM; close monitoring. Enoxaparin, eGFR 30-50 = Standard with monitoring. Enoxaparin, eGFR < 30 = Reduce to OD; consider UFH. Digoxin, eGFR 30-50 = Reduce dose; check levels. Digoxin, eGFR < 30 = Marked reduction; toxicity risk",
+      "Approved Drug Formulary > 2. Cardiovascular Drugs\n\nAmlodipine, Route = Oral. Amlodipine, Standard Dose = 5-10 mg OD. Amlodipine, Tier = 1. Amlodipine, Contraindications = Severe aortic stenosis. Telmisartan, Route = Oral. Telmisartan, Standard Dose = 40-80 mg OD. Telmisartan, Tier = 1. Telmisartan, Contraindications = Pregnancy; bilateral renal artery stenosis. Atorvastatin, Route = Oral. Atorvastatin, Standard Dose = 10-80 mg nocte. Atorvastatin, Tier = 1. Atorvastatin, Contraindications = Active liver disease. Metoprolol, Route = Oral/IV. Metoprolol, Standard Dose = 25-100 mg BD. Metoprolol, Tier = 1. Metoprolol, Contraindications = Cardiogenic shock; 2\u00b0/3\u00b0 heart block. Ramipril, Route = Oral. Ramipril, Standard"
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "doctor",
+    "question": "What is the dose of ivermectin for scabies?",
+    "answer": "I couldn't find anything about that in the documents you can access (general, clinical and nursing).",
+    "contexts": [],
+    "refusal": "not_found",
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "doctor",
+    "question": "Meropenem 1 g every 8 hours, which formulary tier is that?",
+    "answer": "The formulary lists Meropenem with a **Standard Dose =\u202f1\u202fg\u202fQ8H** and assigns it a **Tier\u202f=\u202f3**\u30101\u3011.  \n\nTier\u202f3 in the formulary means \u201cspecialist use; requires HOD approval\u201d\u30103\u3011.  \n\n**Therefore, Meropenem 1\u202fg every\u202f8\u202fhours is a Tier\u202f3 medication.**",
+    "contexts": [
+      "Approved Drug Formulary > 1. Antimicrobials\n\n Clarithromycin, Class = Macrolide. Clarithromycin, Route = Oral. Clarithromycin, Standard Dose = 500 mg BD. Clarithromycin, Tier = 2. Clarithromycin, Storage = Room temp. Clarithromycin, Notes = Many drug interactions. Meropenem, Class = Carbapenem. Meropenem, Route = IV. Meropenem, Standard Dose = 1 g Q8H. Meropenem, Tier = 3. Meropenem, Storage = Room temp. Meropenem, Notes = HOD approval required. Vancomycin, Class = Glycopeptide. Vancomycin, Route = IV. Vancomycin, Standard Dose = 15-20 mg/kg Q12H. Vancomycin, Tier = 3. Vancomycin, Storage = Room temp. Vancomycin, Notes = TDM; trough 15-20 mg/L. Linezolid, Class =",
+      "Approved Drug Formulary > 6. Renal Dose Adjustment (selected drugs)\nDoses  below  are  illustrative;  confirm  against  the  latest  renal  dosing  reference  and  the  patient's  eGFR  before prescribing.\nMetformin, eGFR 30-50 = Max 1 g/day; review. Metformin, eGFR < 30 = Avoid. Meropenem, eGFR 30-50 = Reduce frequency to Q12H. Meropenem, eGFR < 30 = Q24H; specialist input. Vancomycin, eGFR 30-50 = Extend interval per TDM. Vancomycin, eGFR < 30 = Per TDM; close monitoring. Enoxaparin, eGFR 30-50 = Standard with monitoring. Enoxaparin, eGFR < 30 = Reduce to OD; consider UFH. Digoxin, eGFR 30-50 = Reduce dose; check levels. Digoxin, eGFR < 30 = Marked reduction; toxicity risk",
+      "Approved Drug Formulary > Formulary Tier System\nEvery medicine in this formulary carries a tier that governs how it is authorised:\n- Tier 1 - generic first-line; open to all prescribers and subsidised for staff.\n- Tier 2 - branded preferred; open to prescribers.\n- Tier 3 - specialist use; requires HOD approval.\n- Tier 4 - restricted; requires CMO approval."
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "doctor",
+    "question": "What are the ECG interpretation flags?",
+    "answer": "The ECG quick\u2011guide lists the following \u201cflags\u201d that indicate an abnormal finding and trigger further action:\n\n* **Rate**\n  * Normal\u202f=\u202f60\u2011100\u202fbpm  \n  * **Abnormal\u202f=\u202f<\u202f60\u202fbpm (bradycardia) or\u202f>\u202f100\u202fbpm (tachycardia)**\u30101\u2020L1-L3\u3011\n\n* **Rhythm**\n  * Normal\u202f=\u202fSinus  \n  * **Abnormal\u202f=\u202fAtrial fibrillation, atrial flutter, ventricular tachycardia, supraventricular tachycardia** \u2013 each requires classification\u30101\u2020L3-L5\u3011\n\n* **P\u2011R interval**\n  * Normal\u202f=\u202f120\u2011200\u202fms  \n  * **Abnormal\u202f=\u202f>\u202f200\u202fms (first\u2011degree AV block)**\u30101\u2020L5-L6\u3011\n\n* **QRS duration**\n  * Normal\u202f=\u202f<\u202f120\u202fms  \n  * **Abnormal\u202f=\u202f>\u202f120\u202fms (bundle\u2011branch block)**\u30101\u2020L6-L7\u3011\n\n* **QTc**\n  * Normal\u202f=\u202f<\u202f440\u202fms (M), <\u202f460\u202fms (F)  \n  * **Abnormal\u202f=\u202fprolonged QTc \u2192 arrhythmia risk**\u30101\u2020L7-L8\u3011\n\n* **ST segment**\n  * Normal\u202f=\u202fisoelectric  \n  * **Abnormal\u202f=\u202f>\u202f1\u202fmm elevation in\u202f\u2265\u202f2 contiguous leads \u2192 STEMI protocol**\u30101\u2020L8-L9\u3011\n\n* **Common arrhythmia patterns (for quick recognition)**\n  * **AF** \u2013 irregularly irregular, absent P waves  \n  * **VT** \u2013 broad\u2011complex, regular, >\u202f100\u202fbpm, medical emergency  \n  * **SVT** \u2013 narrow\u2011complex tachycardia, often regular\u30101\u2020L9-L11\u3011\n\nThese are the ECG interpretation flags provided in the Diagnostic Reference Guide.",
+    "contexts": [
+      "Diagnostic Reference Guide > 4. ECG Interpretation Quick Guide\nRate, Normal = 60-100 bpm. Rate, Abnormal Significance = < 60 brady; > 100 tachy. Rhythm, Normal = Sinus. Rhythm, Abnormal Significance = AF, flutter, VT, SVT - classify. P-R interval, Normal = 120-200 ms. P-R interval, Abnormal Significance = > 200 ms = 1\u00b0 AV block. QRS duration, Normal = < 120 ms. QRS duration, Abnormal Significance = > 120 ms = bundle branch block. QTc, Normal = < 440 ms (M), < 460 ms (F). QTc, Abnormal Significance = Prolonged \u2192 arrhythmia risk. ST elevation, Normal = Isoelectric. ST elevation, Abnormal Significance = > 1 mm in \u2265 2 contiguous leads = STEMI protocol\nCommon arrhythmias: AF - irregularly irregular, absent P waves; VT - broad-complex, regular, > 100 bpm, medical emergency; SVT - narrow-complex tachycardia, often regular.",
+      "Diagnostic Reference Guide > 5. Arterial Blood Gas (ABG) Interpretation\npH, Normal Range = 7.35-7.45. pH, Interpretation = < 7.35 acidosis; > 7.45 alkalosis. PaCO\u2082, Normal Range = 35-45 mmHg. PaCO\u2082, Interpretation = Respiratory component. HCO\u2083\u207b, Normal Range = 22-26 mEq/L. HCO\u2083\u207b, Interpretation = Metabolic component. PaO\u2082, Normal Range = 80-100 mmHg. PaO\u2082, Interpretation = < 60 = respiratory failure. Lactate, Normal Range = 0.5-2.2 mmol/L. Lactate, Interpretation = > 4 suggests hypoperfusion / sepsis\nQuick approach: assess pH \u2192 identify primary disorder (respiratory vs metabolic) from PaCO\u2082 and HCO\u2083\u207b \u2192 check for compensation \u2192 calculate the anion gap for metabolic acidosis.",
+      "Diagnostic Reference Guide > 3. Urine Analysis Interpretation\nProtein +, Interpretation = Possible renal disease / UTI. Protein +, Next Step = Quantify (ACR); repeat. Glucose +, Interpretation = Hyperglycaemia / low renal threshold. Glucose +, Next Step = Check blood glucose. Blood +, Interpretation = Haematuria - infection, stones, malignancy. Blood +, Next Step = Microscopy; imaging if persistent. Nitrites +, Interpretation = Gram-negative bacteriuria. Nitrites +, Next Step = Send culture; treat if symptomatic. Leucocytes +, Interpretation = Pyuria / inflammation. Leucocytes +, Next Step = Correlate with nitrites & symptoms. Nitrites + & Leucocytes +, Interpretation = Strongly suggests UTI. Nitrites + & Leucocytes +, Next Step = Treat per antibiogram"
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "doctor",
+    "question": "What is the diagnosis code N17.9 used for?",
+    "answer": "I couldn't find anything about that in the documents you can access (general, clinical and nursing).",
+    "contexts": [],
+    "refusal": "not_found",
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "doctor",
+    "question": "Which protocol covers ICD-10 I21.4?",
+    "answer": "The ICD\u201110 code **I21.4** is covered by the **Standard Treatment Protocols\u202f>\u202fD. Acute Myocardial Infarction \u2013 NSTEMI** protocol\u30101\u3011.",
+    "contexts": [
+      "Standard Treatment Protocols > D. Acute Myocardial Infarction - NSTEMI\nICD-10: I21.4",
+      "Standard Treatment Protocols > B. Hypertension - Stage 2\nICD-10: I10",
+      "Standard Treatment Protocols > A. Type 2 Diabetes Mellitus\nICD-10: E11"
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "nurse",
+    "question": "What is the hand hygiene protocol before entering the ICU?",
+    "answer": "The hospital\u2019s Infection\u2011Control Guidelines require that you **perform hand hygiene before any patient contact**, which includes entering the ICU environment. This is the first of the WHO \u201cFive Moments of Hand Hygiene\u201d and is intended to protect the patient from microbes on your hands\u30103\u2020L1-L4\u3011.  \n\n(Other SOPs (e.g., CVC care\u202f[1] and endotracheal suctioning\u202f[2]) also begin with \u201cPerform hand hygiene\u2026\u201d, reinforcing that hand hygiene must be done first before any bedside activity.)",
+    "contexts": [
+      "ICU Nursing Procedures Manual > SOP 1 - Central Venous Catheter (CVC) Care > Procedure\n- 1 Perform hand hygiene and don personal protective equipment (PPE).\n- 2 Remove the old dressing and discard in the yellow (biomedical) bin.\n- 3 Inspect the insertion site for redness, swelling, or discharge.\n- 4 Perform hand hygiene again and apply sterile gloves.\n- 5 Clean the site with chlorhexidine using a concentric (inside-out) motion.\n- 6 Allow to air-dry for at least 30 seconds - do not fan or blow.\n- 7 Apply the new transparent dressing.\n- 8 Label the dressing with the date and your initials.\n- 9 Document the procedure and site assessment in the care record.",
+      "ICU Nursing Procedures Manual > SOP 6 - Endotracheal Suctioning > Procedure\n- 1 Hand hygiene; don gloves, apron and eye protection.\n- 2 Pre-oxygenate with FiO\u2082 1.0 for 30-60 seconds.\n- 3 Use a closed in-line suction catheter where available; select catheter \u2264 half the ETT internal diameter.\n- 4 Insert without suction; apply suction on withdrawal for no more than 10-15 seconds.\n- 5 Limit to two passes; allow recovery between passes.\n- 6 Return ventilator settings to baseline and reassess.\n- 7 Document secretion colour, volume and the patient's tolerance.",
+      "Infection Control Guidelines > 1. Five Moments of Hand Hygiene\nThe WHO 'Five Moments' framework is the foundation of infection prevention. Perform hand hygiene at each of these moments:\n- 1 Before patient contact - to protect the patient from your hands.\n- 2 Before an aseptic procedure - to protect the patient from infection.\n- 3 After body-fluid exposure risk - to protect yourself and the environment.\n- 4 After patient contact - to protect yourself and the environment.\n- 5 After contact with patient surroundings - to protect yourself and the environment."
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "nurse",
+    "question": "Which IV cannula size for a paediatric patient under 5 kg?",
+    "answer": "The manual specifies that for a paediatric patient weighing **less than\u202f5\u202fkg**, the recommended IV cannula gauge is **24\u202fG**\u30101\u3011.",
+    "contexts": [
+      "ICU Nursing Procedures Manual > SOP 4 - IV Cannula Insertion > Cannula sizing by indication\nBlood transfusion, Recommended Gauge = \u2265 18G. Rapid fluid resuscitation, Recommended Gauge = \u2265 16G. Routine medication, Recommended Gauge = 20-22G. Paediatric < 5 kg, Recommended Gauge = 24G. Paediatric 5-20 kg, Recommended Gauge = 22G. Paediatric > 20 kg, Recommended Gauge = 20G",
+      "ICU Nursing Procedures Manual > SOP 4 - IV Cannula Insertion > Site selection (order of preference)\nForearm \u2192 antecubital fossa \u2192 dorsum of hand. Avoid the legs except in emergency.",
+      "ICU Nursing Procedures Manual > SOP 4 - IV Cannula Insertion > Cannula change\nReplace every 72-96 hours , or immediately if there are signs of phlebitis (Visual Infusion Phlebitis [VIP] score \u2265 2)."
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "technician",
+    "question": "What does fault code F-05 mean on the infusion pump?",
+    "answer": "Fault code **F\u201105** on the infusion pump indicates **\u201cDoor open.\u201d**\u202fThe manual lists this meaning for the DriveFlow\u202fIP\u2011200 infusion pump\u202f[1].",
+    "contexts": [
+      "Equipment Operation & Maintenance Manual > B. Infusion Pump - DriveFlow IP-200 > Fault codes\nF-01, Meaning = Air in line. F-01, Action = Purge line; check connections. F-03, Meaning = Occlusion. F-03, Action = Check for kinks/clamps; restart. F-05, Meaning = Door open. F-05, Action = Close door securely. F-08, Meaning = Battery failure. F-08, Action = Service battery; use mains. F-12, Meaning = Drug library update required. F-12, Action = Remove from service; update library; log in CMMS",
+      "Equipment Operation & Maintenance Manual > D. Portable X-Ray Unit - RadiPro MX-150 > Fault codes\nF-02, Meaning = DR panel not detected. F-02, Action = Re-pair panel; check battery. F-05, Meaning = Battery below 20%. F-05, Action = Charge before use. F-09, Meaning = kV generator fault. F-09, Action = Remove from service; log in CMMS",
+      "Equipment Operation & Maintenance Manual > C. Autoclave Steriliser - SterilPro 3000 > Fault codes\nE-01, Meaning = Door seal failure. E-01, Action = Inspect/replace gasket; leak test. E-04, Meaning = Steam generator low water. E-04, Action = Refill / check supply. E-07, Meaning = Temperature sensor fault. E-07, Action = Do not use; call biomedical. E-11, Meaning = Vacuum pump failure. E-11, Action = Do not run pre-vacuum cycle; service pump"
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "technician",
+    "question": "How do I run a sterilisation cycle on the autoclave?",
+    "answer": "The provided excerpts do not contain a step\u2011by\u2011step procedure for starting or operating a sterilisation cycle on the SterilPro\u202f3000 autoclave.  \n\nWhat the passages do include are:\n\n* The **available cycle programs** and their parameters (temperature, pressure, hold time, and suitable load types)\u202f\u2014\u202ffor example, \u201cGravity\u202f121\u201d at 121\u202f\u00b0C, 103\u202fkPa, 15\u202fmin for unwrapped instruments and fluids, and \u201cPre\u2011vacuum\u202f134\u201d at 134\u202f\u00b0C, 206\u202fkPa, 3.5\u202fmin for wrapped sets, porous & hollow loads\u202f[3].\n\n* The **daily log requirements** that must be recorded for each cycle, such as cycle number, type, temperature/pressure chart, pass/fail result, operator ID, and load contents\u202f[2].\n\nSince no explicit operating instructions are given in the supplied material, a complete answer on how to run a cycle cannot be provided from the available context.",
+    "contexts": [
+      "Equipment Operation & Maintenance Manual > C. Autoclave Steriliser - SterilPro 3000 > Fault codes\nE-01, Meaning = Door seal failure. E-01, Action = Inspect/replace gasket; leak test. E-04, Meaning = Steam generator low water. E-04, Action = Refill / check supply. E-07, Meaning = Temperature sensor fault. E-07, Action = Do not use; call biomedical. E-11, Meaning = Vacuum pump failure. E-11, Action = Do not run pre-vacuum cycle; service pump",
+      "Equipment Operation & Maintenance Manual > C. Autoclave Steriliser - SterilPro 3000 > Daily log requirements\nRecord for every cycle: cycle number, cycle type, temperature/pressure chart, pass/fail result, operator ID, and load contents.",
+      "Equipment Operation & Maintenance Manual > C. Autoclave Steriliser - SterilPro 3000 > Cycle selection\nGravity 121, Temperature = 121 \u00b0C. Gravity 121, Pressure = 103 kPa. Gravity 121, Hold Time = 15 min. Gravity 121, Suitable For = Unwrapped instruments, fluids. Gravity 134, Temperature = 134 \u00b0C. Gravity 134, Pressure = 206 kPa. Gravity 134, Hold Time = 3 min. Gravity 134, Suitable For = Unwrapped solid instruments. Pre-vacuum 134, Temperature = 134 \u00b0C. Pre-vacuum 134, Pressure = 206 kPa. Pre-vacuum 134, Hold Time = 3.5 min. Pre-vacuum 134, Suitable For = Wrapped sets, porous & hollow loads"
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "technician",
+    "question": "What is the preventive maintenance interval for the ventilators?",
+    "answer": "I couldn't find anything about that in the documents you can access (general and equipment).",
+    "contexts": [],
+    "refusal": "not_found",
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "billing_executive",
+    "question": "How do I submit a cashless claim?",
+    "answer": "To submit a cashless claim you must follow the step\u2011by\u2011step workflow outlined in the Claim Submission &\u202fEscalation Guide:\n\n1. **Verify patient eligibility** on the insurer portal (policy active, sum insured available, waiting period cleared, room\u2011rent category).\u30101\u2020L1-L2\u3011\n\n2. **Counsel the patient on room eligibility** \u2013 exceeding the eligible room rent triggers a proportionate deduction across the whole bill.\u30101\u2020L2-L3\u3011\n\n3. **Create the claim** in MBP \u2192\u202fClaims \u2192\u202fNew\u202fCashless and attach the required documents.\u30101\u2020L3-L4\u3011\n\n4. **Submit the pre\u2011authorisation request** via the insurer portal and log the portal reference number back in MBP.\u30101\u2020L4-L5\u3011\n\n5. **Record the timestamp of submission** \u2013 the SLA clock starts here.\u30101\u2020L5-L6\u3011\n\n6. **Track status hourly** until an approval, query, or denial is received.\u30101\u2020L6-L7\u3011\n\n7. **On approval**, record the approved amount and pre\u2011auth number in MBP and inform the ward.\u30101\u2020L7-L8\u3011\n\n8. **On a query**, respond within\u202f2\u202fhours with the requested clinical documents.\u30101\u2020L7-L8\u3011\n\n**Pre\u2011authorisation timing (important for submission)**  \n- Planned admission: request at least\u202f48\u202fhours before admission.  \n- Emergency admission: request **within\u202f6\u202fhours of admission**; missing this window is a common cause of denial.\u30103\u2020L1-L3\u3011\n\nFollow these exact steps and timing requirements to successfully submit a cashless claim.",
+    "contexts": [
+      "Claim Submission & Escalation Guide > 1. Cashless Claim Process > 1.3 Step-by-step\n1. Verify patient eligibility on the insurer portal (policy active, sum insured available, waiting period cleared, room-rent category).\n2. Counsel the patient on room eligibility \u2014 exceeding the eligible room rent triggers a proportionate deduction across the whole bill.\n3. Create the claim in MBP \u2192 Claims \u2192 New Cashless and attach the documents above.\n4. Submit the pre-auth request via the insurer portal and log the portal reference number back in MBP.\n5. Record the timestamp of submission \u2014 the SLA clock starts here.\n6. Track status hourly until an approval, query, or denial is received.\n7. On approval, record the approved amount and pre-auth number in MBP and inform the ward.\n8. On a query, respond within 2 hours with the requested clinical documents.",
+      "Claim Submission & Escalation Guide > 2. Reimbursement Claim Process > 2.2 Step-by-step\n1. Counsel the patient at discharge that the claim is reimbursement, not cashless.\n2. Issue the complete original document set and retain certified copies in MBP.\n3. Help the patient fill the claim form; verify the ICD-10 and procedure codes match the bills.\n4. Note the insurer's submission deadline \u2014 typically 30 days post-discharge (confirm per insurer; some allow 15, some 90).\n5. Hand over a document checklist so the patient can track what they submitted, and send a written (email/SMS) reminder of the deadline.\nReimbursement claims are owned by the patient once they leave, but billing executives are\nresponsible for issuing a complete, claim-ready document set. Incomplete discharge\npaperwork is a recurring rejection cause.",
+      "Claim Submission & Escalation Guide > 1. Cashless Claim Process > 1.1 Pre-authorisation timeline\nPlanned admission, Pre-auth request deadline = At least 48 hours before admission. Emergency admission, Pre-auth request deadline = Within 6 hours of admission\nMissing the 6-hour emergency window is the single most common reason for avoidable cashless\ndenials. Raise the request even with provisional details and enhance later (see Section 3)."
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "billing_executive",
+    "question": "What is the billing code for an MRI scan?",
+    "answer": "The billing code for an MRI brain (plain) is **PROC\u2011RAD\u201101**\u30101\u3011.",
+    "contexts": [
+      "Insurance Billing Code Reference > 2. Common Procedure Codes\n\n PROC-OBGY-01, Procedure = LSCS (lower segment caesarean). PROC-OBGY-01, Package (\u20b9) = \u20b952,000. PROC-OBGY-01, Setting = Inpatient. PROC-OPTH-01, Procedure = Cataract surgery (phaco + IOL). PROC-OPTH-01, Package (\u20b9) = \u20b926,000. PROC-OPTH-01, Setting = Day care. PROC-GAST-01, Procedure = Upper GI endoscopy. PROC-GAST-01, Package (\u20b9) = \u20b99,500. PROC-GAST-01, Setting = Day care. PROC-RAD-01, Procedure = MRI brain (plain). PROC-RAD-01, Package (\u20b9) = \u20b98,000. PROC-RAD-01, Setting = Day care. PROC-RAD-02, Procedure = CT abdomen (contrast). PROC-RAD-02, Package",
+      "Insurance Billing Code Reference > 2. Common Procedure Codes\n (\u20b9) = \u20b97,500. PROC-RAD-02, Setting = Day care. PROC-NEUR-01, Procedure = Thrombolysis for acute stroke. PROC-NEUR-01, Package (\u20b9) = \u20b985,000. PROC-NEUR-01, Setting = Inpatient",
+      "Insurance Billing Code Reference > Introduction\nThis reference maps the diagnosis and procedure codes used in MediAssist claim submissions to insurer package rates. Accurate coding is the single biggest determinant of timely claim approval.\n- ICD-10 codes describe the diagnosis (why the patient was treated).\n- Procedure codes describe the intervention (what was done).\n- Specificity matters: an unspecified code invites a query or rejection. Always code to the highest level of detail supported by the clinical record."
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "nurse",
+    "question": "How many days of casual leave do staff get?",
+    "answer": "Staff are entitled to the following amounts of Casual Leave (CL) each year:\n\n- **Clinical staff:**\u202f8\u202fdays per year\u30101\u3011  \n- **Non\u2011clinical staff:**\u202f10\u202fdays per year\u30101\u3011\n\n(Notes: Casual Leave cannot be clubbed with Earned Leave\u30101\u3011.)",
+    "contexts": [
+      "Leave & Attendance Policy > 2. Leave Types and Entitlements\n\nEarned Leave (EL), Clinical Staff = 15 days/yr. Earned Leave (EL), Non-Clinical = 18 days/yr. Earned Leave (EL), Notes = Carry forward max 30 days. Sick Leave (SL), Clinical Staff = 12 days/yr. Sick Leave (SL), Non-Clinical = 12 days/yr. Sick Leave (SL), Notes = Medical certificate beyond 3 consecutive days. Casual Leave (CL), Clinical Staff = 8 days/yr. Casual Leave (CL), Non-Clinical = 10 days/yr. Casual Leave (CL), Notes = Cannot be clubbed with EL. Maternity Leave, Clinical Staff = 182 days. Maternity Leave, Non-Clinical = 182 days. Maternity Leave, Notes = Per Maternity Benefit Act, 1961. Paternity Leave, Clinical Staff = 7 days. Paternity Leave, Non-Clinical = 7 days. Paternity Leave, Notes = Within 3 months of child's birth. Bereavement Leave, Clinical Staff = 3 days. Bereavement",
+      "Leave & Attendance Policy > 2. Leave Types and Entitlements\n Leave, Non-Clinical = 3 days. Bereavement Leave, Notes = Immediate family only. Study Leave, Clinical Staff = 5 days/yr. Study Leave, Non-Clinical = Not applicable. Study Leave, Notes = CME / certification courses only. Compensatory Off, Clinical Staff = As accrued. Compensatory Off, Non-Clinical = As accrued. Compensatory Off, Notes = Avail within 60 days of accrual",
+      "General Staff FAQs > HR & Administration > Q19. What is the notice period for resignation?\n30 days for non-clinical staff and 60 days for clinical staff , as specified in your appointment letter."
+    ],
+    "refusal": null,
+    "retrieval_type": "hybrid_rag"
+  },
+  {
+    "role": "billing_executive",
+    "question": "How many claims were escalated in March 2024?",
+    "answer": "I could not form a database query from that question. Please rephrase it.",
+    "contexts": [],
+    "refusal": "no_query",
+    "retrieval_type": "sql_rag"
+  },
+  {
+    "role": "billing_executive",
+    "question": "Which insurer has the most approved claims?",
+    "answer": "ICICI\u202fLombard has the most approved claims with 9.",
+    "contexts": [],
+    "refusal": null,
+    "retrieval_type": "sql_rag"
+  },
+  {
+    "role": "nurse",
+    "question": "What are the insurance billing codes for an MRI?",
+    "answer": "This looks like a question for billing documents, which a nurse cannot read. I can only answer questions from the general and nursing collections.",
+    "contexts": [],
+    "refusal": "role",
+    "retrieval_type": "hybrid_rag"
+  }
+]

@@ -124,6 +124,20 @@ def test_the_bearer_token_reaches_the_target(stub_client):
     assert stub.calls[-1]["token"] == "abc.def"
 
 
+def test_the_target_is_asked_with_a_token_and_no_principal(stub_client):
+    """The other half: even the internal call carries no principal.
+
+    `service.handle` accepts one, because a caller with no credential of its own — the
+    evaluation runner — needs it. The HTTP path never uses it. Without this, forbidding the
+    field in the body could be undone by a handler that read it from somewhere else and
+    passed it down, and the test above would still pass.
+    """
+    client, stub = stub_client
+    client.post("/chat", json={"question": "q"}, headers={"Authorization": "Bearer abc.def"})
+    assert stub.calls[-1]["token"] == "abc.def"
+    assert stub.calls[-1]["principal"] is None
+
+
 @pytest.mark.parametrize("headers", [{}, {"Authorization": "Basic nonsense"}, {"Authorization": "Bearer "}])
 def test_chat_without_a_usable_bearer_token_is_401(stub_client, headers):
     """`/chat` has no anonymous path: without a token there is no principal, and the
@@ -144,9 +158,11 @@ def test_the_question_is_bounded_and_must_not_be_blank(stub_client, question):
 def test_an_unexpected_field_is_refused_rather_than_silently_dropped(stub_client):
     """An unknown key is a 422. Silently dropping one would answer the caller as somebody
     else with nothing saying their field was ignored."""
-    client, _ = stub_client
+    client, stub = stub_client
     response = client.post("/chat", json={"question": "q", "principal": "admin"}, headers=AUTH)
     assert response.status_code == 422
+    # And the target was never reached: a request that will be refused should cost nothing.
+    assert stub.calls == []
 
 
 def test_an_unknown_role_never_reaches_the_targets_url(stub_client):
