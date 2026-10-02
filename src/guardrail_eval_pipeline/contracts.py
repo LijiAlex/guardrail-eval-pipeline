@@ -113,6 +113,29 @@ class Target(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class Verdict:
+    """What a guardrail decided about one piece of text.
+
+    Structured rather than a sentence to be pattern-matched: `blocked` is the decision and
+    `reasons` names the policies that fired.
+
+    `reasons` is for the log and never for the caller — the reason a request was blocked is
+    a map of what the filters look for. `message` is the generic refusal that may be shown.
+
+    `failed_closed` separates "judged and blocked" from "could not be judged". Both stop
+    the request; only one says anything about the text.
+    """
+
+    blocked: bool
+    reasons: tuple[str, ...] = ()
+    message: str | None = None
+    masked_text: str | None = None
+    failed_closed: bool = False
+    detail: str | None = None
+    usage: dict[str, int] = field(default_factory=dict)
+
+
 REQUIRED_ASK_PARAMS = ("question", "principal", "token", "trace_headers")
 
 

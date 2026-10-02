@@ -16,6 +16,11 @@ capabilities:
   citations: true
   token_usage: false
 
+# The guardrail protecting this target. A path rather than a repeated name and region, so
+# the policy file stays the single source for both.
+guardrails:
+  policy: guardrails/medibot.yaml
+
 # principal -> the account to log in as. The KEY must be what MediBot reports as its
 # `role`, because the output guardrail compares the two.
 principals:

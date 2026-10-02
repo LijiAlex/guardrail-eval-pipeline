@@ -7,8 +7,9 @@ being judged by them.
     the target knows how to be asked        -> the adapter, which is code
     the pipeline decides what correct means -> these files
 
-Only keys with a reader today are parsed. `capabilities:`, `guardrails:` and `evaluation:`
-are written in the YAML already but stay in `raw` until the step that needs them.
+Only keys with a reader today are parsed; the rest stay in `raw` until the step that needs
+them. `load_policy` reads the other kind of file — `guardrails/<target>.yaml`, which
+describes the guardrail itself rather than where the target lives.
 """
 
 from __future__ import annotations
@@ -77,5 +78,49 @@ def load_target(path: str | Path) -> TargetConfig:
         endpoint=str(data["endpoint"]).rstrip("/"),
         principals=data.get("principals") or {},
         auth=data.get("auth") or {},
+        raw=data,
+    )
+
+
+@dataclass(frozen=True)
+class GuardrailPolicy:
+    """The parts of a guardrail policy file this pipeline needs at runtime.
+
+    The file's real audience is Bedrock, via `scripts/guardrail.py`. Four values matter
+    here: which guardrail to call, where it lives, and the two refusals to fall back on
+    when Bedrock did not answer and so returned no message of its own.
+    """
+
+    name: str
+    region: str
+    input_message: str
+    output_message: str
+    version: str = "DRAFT"
+    raw: dict[str, Any] = field(default_factory=dict)
+
+
+def load_policy(path: str | Path) -> GuardrailPolicy:
+    """Read a guardrail policy file. Raises `ConfigError` if it is missing or incomplete."""
+    path = Path(path)
+    if not path.is_file():
+        raise ConfigError(f"no guardrail policy at {path}")
+
+    data = yaml.safe_load(path.read_text()) or {}
+    if not isinstance(data, dict):
+        raise ConfigError(f"{path}: expected a mapping at the top level")
+
+    required = ("name", "region", "blocked_input_message", "blocked_output_message")
+    missing = [key for key in required if not data.get(key)]
+    if missing:
+        raise ConfigError(f"{path}: missing required key(s): {', '.join(missing)}")
+
+    return GuardrailPolicy(
+        name=data["name"],
+        region=data["region"],
+        input_message=data["blocked_input_message"],
+        output_message=data["blocked_output_message"],
+        # DRAFT follows whatever was last applied. A deployment should pin a published
+        # version so editing the policy cannot change a running system by surprise.
+        version=str(data.get("version", "DRAFT")),
         raw=data,
     )

@@ -26,7 +26,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from guardrail_eval_pipeline import service
 from guardrail_eval_pipeline.adapters import build_target
-from guardrail_eval_pipeline.config import ConfigError, TargetConfig, load_target
+from guardrail_eval_pipeline.config import ConfigError, TargetConfig, load_policy, load_target
+from guardrail_eval_pipeline.guardrails import BedrockGuardrail
 from guardrail_eval_pipeline.contracts import Target, TargetAuthError, TargetError
 
 DEFAULT_TARGET_CONFIG = "targets/medibot.yaml"
@@ -86,6 +87,25 @@ def get_target() -> Target:
     return build_target(get_config())
 
 
+@lru_cache(maxsize=1)
+def get_guardrail() -> BedrockGuardrail | None:
+    """The guardrail named by the target config, or None when it names none.
+
+    Resolved once at startup rather than per request, so a misconfigured guardrail is a
+    loud failure on the first call instead of a slow one on every call.
+
+    Deliberately not silent: a target with no `guardrails:` block runs unguarded, which is
+    a legitimate configuration, and `/health` says which it is.
+    """
+    policy_path = (get_config().raw.get("guardrails") or {}).get("policy")
+    if not policy_path:
+        return None
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    if not os.path.isabs(policy_path):
+        policy_path = os.path.join(repo_root, policy_path)
+    return BedrockGuardrail.from_policy(load_policy(policy_path))
+
+
 def bearer(authorization: Annotated[str | None, Header()] = None) -> str:
     """The caller's bearer token. 401 if absent or malformed.
 
@@ -119,10 +139,20 @@ class ChatRequest(BaseModel):
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    """Report that the pipeline is running, and which target it is wired to."""
+def health(guardrail: Any = Depends(get_guardrail)) -> dict[str, str | None]:
+    """Report that the pipeline is running, which target it watches, and whether the
+    guardrails are actually on.
+
+    `guardrail: null` is the answer worth having. An unguarded pipeline serves identical
+    responses to a guarded one right up until something should have been blocked.
+    """
     config = get_config()
-    return {"status": "ok", "target": config.name, "endpoint": config.endpoint}
+    return {
+        "status": "ok",
+        "target": config.name,
+        "endpoint": config.endpoint,
+        "guardrail": getattr(guardrail, "identifier", None),
+    }
 
 
 def _forward(target: Target, method: str, path: str, body: dict | None = None) -> tuple[int, dict]:
@@ -178,6 +208,7 @@ def chat(
     request: ChatRequest,
     target: Target = Depends(get_target),
     token: str = Depends(bearer),
+    guardrail: Any = Depends(get_guardrail),
 ) -> dict[str, Any]:
     """One question, guarded, answered in the target's own shape.
 
@@ -191,6 +222,7 @@ def chat(
             request.question,
             target=target,
             token=token,
+            guardrails=guardrail,
         )
     except TargetAuthError as exc:
         # The caller needs to sign in again, not wait for a system to recover.
