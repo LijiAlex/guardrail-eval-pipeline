@@ -1,14 +1,18 @@
-"""Check every assignment requirement against something real in this repository.
+"""A structural checklist: does an artefact exist for each requirement.
 
     python scripts/validate_spec.py
 
-Each row asserts an artefact exists and says what it is — a policy with the right filters,
-a report with the right sections, a README with the right evidence. It is a guard against
-a requirement being quietly satisfied by a sentence rather than by code.
+This is a drift alarm, not evidence. Most rows assert that a file contains a thing — a
+policy with the right filters, a report with the right sections, a README that names the
+judge. Almost none of them execute the behaviour they are named after, and a row passing
+means "there is something here", not "this works".
 
-What it cannot tell you is whether a section was *populated*: RAGAS and judge scores depend
-on a provider key, and a report with those marked unavailable still passes the structural
-check. The report itself is honest about which it is.
+It earns its place by catching regressions: rewriting a README section once removed the
+only mention of GROQ_API_KEY, and this is what noticed. It does not tell you whether a
+report section was populated, whether a metric ran, or whether a test could fail.
+
+For whether the thing actually works, read `docs/report.md`, `docs/measurements/` and the
+test suite. Do not quote this script's score as a result.
 """
 
 from __future__ import annotations
@@ -23,6 +27,15 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from guardrail_eval_pipeline import heuristics, judge, ragas_metrics  # noqa: E402
+
+
+def report_excerpt_matches(readme: str, report: str) -> bool:
+    from guardrail_eval_pipeline.report import END, START, excerpt
+
+    if START not in readme or END not in readme:
+        return False
+    block = readme.split(START, 1)[1].split(END, 1)[0].strip()
+    return block == excerpt(report).strip()
 
 
 def main() -> int:
@@ -82,12 +95,19 @@ def main() -> int:
          readme.count("GUARDRAIL_INTERVENED") >= 3),
         ("S", "a sample report output", "## Sample report" in readme),
         ("S", "tool substitutions and why", "## Tool substitutions" in readme),
+        # The README's sample block is generated from the report. If it has been hand-edited
+        # or the report regenerated without it, they disagree — which is exactly how this
+        # README once came to advertise RAGAS scores that existed in no committed file.
+        ("S", "the README sample matches the committed report",
+         report_excerpt_matches(readme, report)),
     ]
 
     gaps = [name for _, name, ok in checks if not ok]
     for component, name, ok in checks:
-        print(f"  {'PASS' if ok else 'GAP '}  [{component}] {name}")
-    print(f"\n{len(checks) - len(gaps)}/{len(checks)} requirements evidenced")
+        print(f"  {'found  ' if ok else 'MISSING'} [{component}] {name}")
+    print(f"\n{len(checks) - len(gaps)}/{len(checks)} requirements have an artefact present.")
+    print("This is a structural check. It does not show that any of them work — "
+          "see docs/report.md and the test suite for that.")
     if gaps:
         print("\ngaps:")
         for gap in gaps:

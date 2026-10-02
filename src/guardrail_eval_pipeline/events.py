@@ -54,6 +54,10 @@ class Event:
     answer: str | None = None
     guardrail: dict[str, str] = field(default_factory=dict)
     usage: dict[str, int] = field(default_factory=dict)
+    # Spec l.60 names latency before token usage. Spans carry it per stage and in more
+    # detail, but tracing is optional and this file is not — a duration that only exists
+    # in a span is unrecoverable the moment tracing is switched off.
+    latency_ms: float | None = None
     trace_id: str | None = None            # joins this event to its span
     detail: str | None = None
     at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

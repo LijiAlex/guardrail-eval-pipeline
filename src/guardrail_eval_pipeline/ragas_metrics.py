@@ -9,10 +9,17 @@ Three of those need passages, so a case the target answered from records has not
 them to measure. Those are reported UNAVAILABLE. A zero would be indistinguishable from a
 system that retrieved badly, and only one of those is a fault.
 
-The evaluator runs on `openai/gpt-oss-20b` and not the target's `gpt-oss-120b`: the
-provider's quota is per model as well as per organisation, so a separate model is both a
-separation of concerns and a separate budget. Embeddings come from Bedrock, which spends
-no provider quota at all.
+The evaluator must not be the model that wrote the answers. Faithfulness decomposes an
+answer into claims and checks each against the passages, and a model asked to grade its own
+phrasing is charitable to it — the same circularity the judge avoids.
+
+It ran on `openai/gpt-oss-20b` until that model's daily quota was exhausted, and now runs on
+`qwen/qwen3.8-27b`. That shares a model with the judge, which is a weaker separation than
+before but the right one to give up: the judge and these metrics measure different things,
+while evaluating the target with the target's own model would be circular. The remaining
+candidate, `gpt-oss-120b`, *is* the target's model.
+
+Embeddings come from Bedrock and spend no provider quota at all.
 """
 
 from __future__ import annotations
@@ -23,7 +30,7 @@ from dataclasses import dataclass, field
 # Only cases that produced an answer AND the passages behind it can be scored.
 METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall")
 
-EVALUATOR_MODEL = "openai/gpt-oss-20b"
+EVALUATOR_MODEL = "qwen/qwen3.8-27b"
 EMBEDDING_MODEL = "cohere.embed-english-v3"
 EMBEDDING_REGION = "ap-south-1"
 
@@ -112,9 +119,17 @@ def score(outcomes) -> list[Scored]:
             dataset,
             metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
             llm=llm, embeddings=embeddings,
-            # Two at a time. The default fans out far enough to trip the rate limit, and a
-            # throttled job comes back as a missing score rather than an error.
-            run_config=RunConfig(max_workers=2, timeout=180, max_retries=5),
+            # Two workers, with long timeouts and patient retries. The provider caps
+            # tokens per minute and a throttled job comes back as a missing score rather
+            # than an error, so coverage degrades under load — the `coverage()` figure in
+            # the report is what makes that visible instead of silently shrinking the
+            # denominator. One worker was tried and is worse: serialising makes the whole
+            # run long enough to be cut off, which loses more than throttling does.
+            # Bounded on purpose. Patient retries were tried — eight attempts against a
+            # 300s timeout — and a single stuck job then blocks the whole run past forty
+            # minutes, which produces nothing at all. Failing a job fast and reporting the
+            # lost coverage is strictly better than a run that never returns.
+            run_config=RunConfig(max_workers=1, timeout=90, max_retries=3),
         ).to_pandas()
     except Exception as exc:  # noqa: BLE001
         # One failure marks every scorable case, rather than leaving some scored and some

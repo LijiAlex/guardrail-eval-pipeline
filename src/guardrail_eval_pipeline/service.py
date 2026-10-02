@@ -16,11 +16,13 @@ this span's context, which the target adopts as its parent. Without that the two
 produce two unrelated traces and nobody can see a retrieval and the guardrail decision
 about it side by side.
 
-The input guardrail runs here. The output one arrives in B3; its seam is marked below.
+Both guardrails run here: the question is checked before the target sees it, and the
+answer before the caller does.
 """
 
 from __future__ import annotations
 
+import time
 import uuid
 from dataclasses import dataclass, replace
 from typing import Protocol
@@ -76,7 +78,8 @@ def _trace_headers() -> dict[str, str] | None:
 
 
 def _emit(result: Guarded, *, target_name: str, request_id: str, question: str,
-          guardrail: dict[str, str], blocked_at: str | None) -> None:
+          guardrail: dict[str, str], blocked_at: str | None,
+          latency_ms: float | None = None) -> None:
     """Write the durable record of this request.
 
     The question and answer are kept because the spec's test is that one logged request can
@@ -109,6 +112,7 @@ def _emit(result: Guarded, *, target_name: str, request_id: str, question: str,
         usage=dict(verdict.usage) if verdict else {},
         trace_id=str(run.trace_id) if run is not None else None,
         detail=verdict.detail if verdict else None,
+        latency_ms=None if latency_ms is None else round(latency_ms, 1),
     ))
 
 
@@ -164,6 +168,7 @@ def handle(
                       "version": getattr(guardrails, "version", "")},
     }
 
+    started = time.perf_counter()
     verdict = guardrails.check_input(question) if guardrails is not None else None
 
     if verdict is not None and verdict.blocked:
@@ -177,7 +182,7 @@ def handle(
             verdict=verdict,
         )
         _record(blocked)
-        _emit(blocked, blocked_at="input", **log)
+        _emit(blocked, blocked_at="input", latency_ms=(time.perf_counter() - started) * 1000, **log)
         return blocked
 
     response = target.ask(question, principal=principal, token=token,
@@ -186,7 +191,7 @@ def handle(
     if guardrails is None:
         unguarded = Guarded(response=response, verdict=verdict)
         _record(unguarded)
-        _emit(unguarded, blocked_at=None, **log)
+        _emit(unguarded, blocked_at=None, latency_ms=(time.perf_counter() - started) * 1000, **log)
         return unguarded
 
     # The principal comes back with the response, so the scope check runs against the
@@ -203,14 +208,14 @@ def handle(
             verdict=out,
         )
         _record(withheld)
-        _emit(withheld, blocked_at="output", **log)
+        _emit(withheld, blocked_at="output", latency_ms=(time.perf_counter() - started) * 1000, **log)
         return withheld
     if out.masked_text is not None:
         # Masked, not blocked: the answer stands with entities replaced, metadata intact.
         response = replace(response, answer=out.masked_text)
     allowed = Guarded(response=response, verdict=out)
     _record(allowed)
-    _emit(allowed, blocked_at=None, **log)
+    _emit(allowed, blocked_at=None, latency_ms=(time.perf_counter() - started) * 1000, **log)
     return allowed
 
 

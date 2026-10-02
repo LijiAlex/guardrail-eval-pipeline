@@ -5,8 +5,15 @@ __pycache__/
 .env
 reports/
 
-# Event log, written at runtime
-logs/
+# The event log and saved runs are written at runtime and are regenerable, but one of
+# each is committed below: without them a clone cannot reproduce the report's guardrail
+# counts, `scripts/metrics.py` prints nothing, and `--reuse` has no run to score. They
+# hold only synthetic demo data and the evaluation set's own questions.
+logs/*
+!logs/medibot/
+logs/medibot/*
+!logs/medibot/events.jsonl
 
-# Saved evaluation runs (regenerable; the report is what is committed)
-runs/
+# Saved evaluation runs. latest.json is committed so `--reuse` works from a clone.
+runs/*
+!runs/latest.json

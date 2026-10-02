@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
 from guardrail_eval_pipeline import events
 from guardrail_eval_pipeline.ragas_metrics import METRICS
@@ -43,10 +44,20 @@ class Section:
     threshold: float | None
     detail: str = ""
 
+    # Below this share of the eligible cases, a mean is an anecdote. Judging it against a
+    # threshold would turn one sample into a verdict, and a verdict is the one thing this
+    # report exists to state.
+    MINIMUM_COVERAGE = 0.5
+
+    scored: int = 0
+    eligible: int = 0
+
     @property
     def status(self) -> str:
         if self.value is None:
             return "unavailable"
+        if self.eligible and self.scored / self.eligible < self.MINIMUM_COVERAGE:
+            return "insufficient"
         if self.threshold is None:
             return "reported"
         return "pass" if self.value >= self.threshold else "FAIL"
@@ -97,7 +108,8 @@ def build(run, dataset) -> str:
         # rather than letting the mean imply a coverage it does not have.
         if eligible and scored < eligible:
             detail += " — incomplete"
-        sections.append(Section(metric, value, THRESHOLDS[metric], detail))
+        sections.append(Section(metric, value, THRESHOLDS[metric], detail,
+                                scored=scored, eligible=eligible))
 
     judged = [c.judge.get("mean") for c in run.cases
               if isinstance(c.judge, dict) and isinstance(c.judge.get("mean"), (int, float))]
@@ -110,7 +122,7 @@ def build(run, dataset) -> str:
                             f"{len(caught)} probes"))
 
     failed = [s for s in sections if s.status == "FAIL"]
-    unavailable = [s for s in sections if s.status == "unavailable"]
+    unavailable = [s for s in sections if s.status in ("unavailable", "insufficient")]
     verdict = "FAIL" if failed else ("PASS" if not unavailable else "PASS (incomplete)")
 
     guardrail = _guardrail_counts(run.target)
@@ -129,8 +141,9 @@ def build(run, dataset) -> str:
         lines.append("")
     if unavailable:
         lines += [
-            "Not measured, and deliberately not scored zero — a metric that could not run "
-            "is not a metric that failed:",
+            "Not judged. A metric that could not run is not a metric that failed, and one "
+            f"scored on fewer than {int(Section.MINIMUM_COVERAGE * 100)}% of its eligible "
+            "cases is an anecdote rather than a result:",
             "",
         ]
         lines += [f"- {s.name}" for s in unavailable]
@@ -144,8 +157,16 @@ def build(run, dataset) -> str:
         lines.append(f"| {s.name} | {value} | {threshold} | {s.status} | {s.detail} |")
     lines.append("")
 
+    by_version: dict[str, int] = {}
+    for row in events.read(run.target):
+        by_version[(row.get("guardrail") or {}).get("version") or "?"] = \
+            by_version.get((row.get("guardrail") or {}).get("version") or "?", 0) + 1
     lines += ["## Guardrail decisions", "",
-              "From the event log — production traffic, not this evaluation run.", "",
+              "From the event log: every request that went through the guarded path, which "
+              "includes this evaluation run as well as any other traffic. Counts are across "
+              f"guardrail versions {', '.join(sorted(by_version))} "
+              f"({', '.join(f'{v}: {n}' for v, n in sorted(by_version.items()))}) — a "
+              "verdict is only interpretable against the policy that produced it.", "",
               "| decision | count |", "|---|---|"]
     for name in ("allowed", "masked", "target_refused", "blocked"):
         lines.append(f"| {name} | {guardrail.get(name, 0)} |")
@@ -260,3 +281,41 @@ def build(run, dataset) -> str:
               "were seen. Heuristics must all pass because a deterministic failure is a "
               "defect rather than a bad draw.", ""]
     return "\n".join(lines)
+
+
+START = "<!-- report:start -->"
+END = "<!-- report:end -->"
+
+
+def excerpt(report_text: str) -> str:
+    """The verdict and the signals table, lifted from a report.
+
+    The README has to show a sample report, and a hand-copied one drifts: an earlier draft
+    advertised three passing RAGAS metrics that existed in no committed file, because it
+    was written from a run that had since been replaced. Taking it from the report means
+    the two cannot disagree.
+    """
+    lines, keeping, out = report_text.splitlines(), False, []
+    for line in lines:
+        if line.startswith("## Verdict"):
+            keeping = True
+        elif line.startswith("## Guardrail decisions"):
+            break
+        if keeping:
+            out.append(line)
+    return "\n".join(out).strip()
+
+
+def update_readme(readme: Path, report_text: str) -> bool:
+    """Replace the README's sample block with the current report. True if it changed."""
+    text = readme.read_text()
+    if START not in text or END not in text:
+        return False
+    before, rest = text.split(START, 1)
+    _, after = rest.split(END, 1)
+    block = f"{START}\n\n{excerpt(report_text)}\n\n{END}"
+    updated = before + block + after
+    if updated != text:
+        readme.write_text(updated)
+        return True
+    return False

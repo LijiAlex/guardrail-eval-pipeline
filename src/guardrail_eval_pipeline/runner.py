@@ -115,6 +115,14 @@ def collect(dataset: Dataset, config: TargetConfig, *, guardrail=None,
 def _outcomes(dataset: Dataset, run: Run) -> list[heuristics.Outcome]:
     """Rebuild outcomes from a run, so saved results can be re-scored without re-asking."""
     by_id = {case.id: case for case in dataset.cases}
+    unknown = [r.case_id for r in run.cases if r.case_id not in by_id]
+    if unknown:
+        # The saved run predates a change to the set. Re-scoring it would compare answers
+        # against labels that no longer describe them, which is worse than refusing.
+        raise ValueError(
+            f"saved run has cases the evaluation set no longer defines: {unknown}. "
+            "Run without --reuse to ask the target again."
+        )
     rebuilt = []
     for result in run.cases:
         rebuilt.append(heuristics.Outcome(

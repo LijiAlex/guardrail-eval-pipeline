@@ -117,7 +117,14 @@ def states_expected_facts(outcome: Outcome) -> Check:
     if not outcome.case.must_mention or outcome.observed != "answered":
         return Check("states_expected_facts", NOT_APPLICABLE, "")
     answer = fold(outcome.response.answer).lower()
-    missing = [f for f in outcome.case.must_mention if fold(f).lower() not in answer]
+    # Compared twice: as written, then with whitespace removed from both sides. A fact
+    # fragment is a short token — a dose, a gauge, a code — and the target writes "24 G"
+    # where the source writes "24G". That is formatting, not a different fact, and failing
+    # it marks down a correct answer.
+    squeezed = "".join(answer.split())
+    missing = [f for f in outcome.case.must_mention
+               if fold(f).lower() not in answer
+               and "".join(fold(f).lower().split()) not in squeezed]
     if missing:
         return Check("states_expected_facts", FAIL, f"missing {missing}")
     return Check("states_expected_facts", PASS, f"all of {list(outcome.case.must_mention)}")

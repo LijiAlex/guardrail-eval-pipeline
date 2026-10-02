@@ -50,6 +50,20 @@ def main() -> None:
         for reason, count in reasons.most_common():
             print(f"  {reason:28} {count}")
 
+    # Spec l.60: latency and token usage per request, exposed as basic metrics.
+    latencies = sorted(r["latency_ms"] for r in rows if r.get("latency_ms") is not None)
+    if latencies:
+        middle = latencies[len(latencies) // 2]
+        print(f"\nlatency  median {middle:,.0f}ms   min {latencies[0]:,.0f}ms   "
+              f"max {latencies[-1]:,.0f}ms   ({len(latencies)} requests)")
+    units = {}
+    for row in rows:
+        for name, count in (row.get("usage") or {}).items():
+            units[name] = units.get(name, 0) + count
+    if any(units.values()):
+        print("guardrail units consumed: "
+              + ", ".join(f"{k} {v}" for k, v in sorted(units.items()) if v))
+
     versions = {row["guardrail"].get("version") for row in rows if row.get("guardrail")}
     if versions - {None, ""}:
         print(f"\nguardrail versions seen: {', '.join(sorted(v for v in versions if v))}")
