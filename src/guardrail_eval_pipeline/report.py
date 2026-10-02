@@ -223,11 +223,25 @@ def build(run, dataset) -> str:
                   f"- check: `{check['name']}`", f"- why: {check['detail']}",
                   f"- answer: {case.answer[:300]}", ""]
     else:
-        lines += ["## A heuristic correctly failing a bad response", "",
-                  "No heuristic failed in this run. The probes below carry that "
-                  "demonstration instead: they are fixed wrong answers that never reach "
-                  "the target, and a judge that passes them has not been shown to work.",
-                  ""]
+        # No case failed, so the demonstration comes from a probe — a fixed bad answer with
+        # the passages it should have come from. Deterministic, and it does not depend on
+        # the target happening to produce a bad answer on the day.
+        probe_failure = next((p for p in run.probes
+                              if any(c["status"] == "fail" for c in p.get("checks", []))), None)
+        lines += ["## A heuristic correctly failing a bad response", ""]
+        if probe_failure:
+            # Every failing check, not the first. One of them is incidental — a fixed probe
+            # answer cites nothing by construction — and listing only that would understate
+            # what the deterministic layer actually caught.
+            lines += [f"**{probe_failure['id']}** — a fixed answer that never reaches the "
+                      "target.", "",
+                      f"- answer: {probe_failure.get('answer', '')[:200]}", ""]
+            for check in probe_failure.get("checks", []):
+                if check["status"] == "fail":
+                    lines.append(f"- `{check['name']}` — {check['detail']}")
+            lines.append("")
+        else:
+            lines += ["No heuristic failed in this run, on a case or on a probe.", ""]
 
     if run.probes:
         lines += ["## Judge probes", "",

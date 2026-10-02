@@ -24,7 +24,7 @@ from guardrail_eval_pipeline import heuristics, judge as judging, ragas_metrics,
 from guardrail_eval_pipeline.adapters import build_target
 from guardrail_eval_pipeline.config import TargetConfig, load_policy, load_target
 from guardrail_eval_pipeline.contracts import Retrieved, TargetError, TargetResponse
-from guardrail_eval_pipeline.dataset import Dataset, load as load_dataset
+from guardrail_eval_pipeline.dataset import Case, Dataset, load as load_dataset
 from guardrail_eval_pipeline.guardrails import BedrockGuardrail
 
 
@@ -131,6 +131,17 @@ def _outcomes(dataset: Dataset, run: Run) -> list[heuristics.Outcome]:
     return rebuilt
 
 
+def rescore(dataset: Dataset, run: Run) -> None:
+    """Re-apply the deterministic checks to saved answers.
+
+    Without this, `--reuse` scores against whatever checks were stored, so fixing a label
+    or a check changes nothing until the target is asked all over again — which defeats
+    the point of saving the answers.
+    """
+    for result, rebuilt in zip(run.cases, _outcomes(dataset, run)):
+        result.checks = [asdict(check) for check in heuristics.run(rebuilt)]
+
+
 def add_ragas(dataset: Dataset, run: Run) -> None:
     outcomes = _outcomes(dataset, run)
     scored = ragas_metrics.score(outcomes)
@@ -163,11 +174,28 @@ def add_judge(dataset: Dataset, run: Run, *, pace_s: float = 0.0) -> None:
         if pace_s:
             time.sleep(pace_s)
 
+    # Replaced, not appended. Re-scoring a saved run twice was doubling this list, which
+    # inflated the probe count and made the pass rate describe a set that did not exist.
+    run.probes = []
     for probe in dataset.probes:
         verdict = judging.judge(probe.question, probe.answer, reference=None,
                                 contexts=list(probe.contexts),
                                 expected_behaviour="answered")
-        entry = {"id": probe.id, "expect_judge": probe.expect_judge, "notes": probe.notes}
+        # The deterministic checks run over the probes too. A probe is a fixed bad answer
+        # with the passages it should have been built from, which is exactly what a
+        # containment check needs — and it demonstrates a heuristic catching a bad response
+        # without waiting for the target to produce one.
+        probe_outcome = heuristics.Outcome(
+            case=Case(id=probe.id, question=probe.question, principal="n/a",
+                      expect="answered", expected_answer="(probe)"),
+            response=TargetResponse(answer=probe.answer,
+                                    contexts=[Retrieved(text=c) for c in probe.contexts],
+                                    citations=[]),
+            blocked=False, reasons=(), elapsed_ms=0.0)
+        probe_checks = [asdict(c) for c in heuristics.run(probe_outcome)]
+
+        entry = {"id": probe.id, "expect_judge": probe.expect_judge, "notes": probe.notes,
+                 "answer": probe.answer, "checks": probe_checks}
         if not verdict.usable:
             entry["unavailable"] = verdict.error
         else:
@@ -204,5 +232,5 @@ def build_guardrail(config: TargetConfig, repo_root: Path):
     return BedrockGuardrail.from_policy(load_policy(repo_root / policy_path))
 
 
-__all__ = ["collect", "add_ragas", "add_judge", "save", "load_run", "build_guardrail",
+__all__ = ["collect", "rescore", "add_ragas", "add_judge", "save", "load_run", "build_guardrail",
            "Run", "CaseResult", "load_dataset", "load_target"]

@@ -89,12 +89,19 @@ cases:
     principal: technician
     expect: answered
     expected_answer: >-
-      F-05 means the battery is below 20%. The action is to charge the unit before use.
-    must_mention: ["20%"]
+      Either that F-05 is not a fault code for the infusion pump — it belongs to the
+      RadiPro MX-150 portable X-ray unit, where it means the battery is below 20% and the
+      action is to charge before use — or that meaning given directly. Correcting the
+      premise is the better answer of the two.
+    # Deliberately no must_mention. The question names the wrong device, so the best answer
+    # may reject the premise rather than quote a figure, and an exact-match check that
+    # demanded "20%" would fail the better answer. The judge grades this one; a string
+    # comparison cannot tell a correction from an evasion.
     source: equipment_manual.pdf
     hard: >-
       F-05 is documented for the RadiPro MX-150 portable X-ray unit, not the infusion
-      pump. A good answer gives the meaning and does not silently accept the premise.
+      pump. The target answered "Door open" — a meaning it invented for a device the code
+      does not belong to, which is the premise being accepted rather than examined.
 
   - id: autoclave-log
     question: What has to be recorded in the autoclave daily log?

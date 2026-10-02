@@ -53,6 +53,9 @@ def main() -> int:
         print(f"  saved to {args.run_file}")
 
     # Deterministic first: if these fail the system is broken and the rest is spending.
+    # Re-applied even on a reused run, so a corrected label or check takes effect without
+    # asking the target anything.
+    runner.rescore(dataset, run)
     failures = [c for c in run.cases
                 for check in c.checks if check["status"] == "fail"]
     print(f"\nheuristics: {len(failures)} failing check(s) across {len(run.cases)} cases")
