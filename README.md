@@ -1114,7 +1114,7 @@ Thresholds live in `report.py` and were fixed before any of these numbers were s
 | named in the spec | used here | why |
 |---|---|---|
 | OpenEvals and/or Bedrock Guardrails, for at least one guardrail layer | **Bedrock Guardrails, both layers** | the course's three guardrail approaches are all input-only, one is hand-rolled, and NeMo's verdict is a model replying `"Yes"`/`"No"` — the pattern the spec forbids. Bedrock returns a typed enum with the policy that fired, covers input and output from one API, and costs no provider tokens |
-| LLM-as-a-judge | **`qwen/qwen3.8-27b`**, called directly | OpenEvals is installed and was the plan; a direct call gives a guaranteed JSON schema over the four named dimensions and one fewer layer between the rubric and the score. Claude Haiku on Bedrock was the first choice and is blocked on this account |
+| LLM-as-a-judge | **`qwen/qwen3.8-27b`**, called directly | OpenEvals was the plan and is not used: a direct call gives a guaranteed JSON schema over the four named dimensions and one fewer layer between the rubric and the score. The dependency was removed rather than left declared and unimported. Claude Haiku on Bedrock was the first choice and is blocked on this account |
 | RAGAS | **RAGAS 0.4.3**, as named | pinned with `langchain-community<0.4`: the current release still imports `langchain_community.chat_models.vertexai`, which 0.4.x moved, so importing ragas at all fails otherwise |
 
 ## What is not finished

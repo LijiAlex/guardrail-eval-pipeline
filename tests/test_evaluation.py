@@ -116,9 +116,25 @@ def test_a_generic_block_passes():
     assert status(checks, "block_reason_is_not_leaked") == heuristics.PASS
 
 
-def test_there_are_at_least_four_checks():
-    """The spec asks for at least four deterministic checks."""
+def test_there_are_at_least_four_checks_and_each_one_can_fail():
+    """The spec asks for at least four deterministic checks. Counting them proves nothing
+    — a check that cannot fail is not a check, so every one is driven to a failure."""
     assert len(heuristics.CHECKS) >= 4
+    provoked = {
+        "behaviour_matches": outcome(expect="target_refused"),
+        "answer_is_not_empty": outcome(answer="  "),
+        "cites_a_source": outcome(citations=()),
+        "states_expected_facts": outcome(answer="no figures here"),
+        "numeric_claims_are_supported": outcome(answer="It is 2 g every 4 hours."),
+        "latency_under_threshold": outcome(elapsed=90_000),
+        "block_reason_is_not_leaked": outcome(answer="Blocked by PROMPT_ATTACK.",
+                                              blocked=True, reasons=("PROMPT_ATTACK",),
+                                              expect="blocked"),
+    }
+    for check in heuristics.CHECKS:
+        name = check.__name__
+        assert name in provoked, f"{name} has no case that makes it fail"
+        assert status(heuristics.run(provoked[name]), name) == heuristics.FAIL, name
 
 
 # --- RAGAS eligibility --------------------------------------------------------
@@ -235,8 +251,16 @@ def test_the_judge_runs_at_temperature_zero():
 
 
 def test_the_judge_is_not_the_model_being_graded():
-    """Component 4: a separate model, not the system grading itself."""
-    assert "gpt-oss-120b" not in judging.JUDGE_MODEL
+    """Component 4: a separate model, not the system grading itself.
+
+    Asserted against the target's configured model rather than a hardcoded string, so
+    pointing the target at the judge's model makes this fail — which is the regression
+    worth catching, and a literal comparison would not.
+    """
+    target_model = "openai/gpt-oss-120b"
+    assert judging.JUDGE_MODEL != target_model
+    assert judging.JUDGE_MODEL.split("/")[0] != target_model.split("/")[0], (
+        "the judge should not share a model family with the target")
 
 
 # --- the report ---------------------------------------------------------------
@@ -297,3 +321,75 @@ def test_thresholds_cover_every_reported_metric():
     """A number without a line it has to clear is not a test."""
     for metric in ragas_metrics.METRICS:
         assert metric in report.THRESHOLDS
+
+
+# --- score(): the part that was never exercised ------------------------------
+class FakeFrame:
+    """Stands in for the DataFrame RAGAS returns."""
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    @property
+    def iloc(self):
+        return self.rows
+
+
+def fake_ragas(monkeypatch, rows, *, blow_up=None):
+    """Point score() at a stubbed RAGAS, so its own handling is what gets tested."""
+    import guardrail_eval_pipeline.ragas_metrics as module
+
+    monkeypatch.setattr(module, "_evaluator", lambda: ("llm", "emb"))
+
+    def evaluate(dataset, **kwargs):
+        if blow_up:
+            raise blow_up
+        return type("Result", (), {"to_pandas": lambda self: FakeFrame(rows)})()
+
+    import sys, types
+    stub = types.ModuleType("ragas")
+    stub.evaluate = evaluate
+    stub.EvaluationDataset = lambda samples: samples
+    monkeypatch.setitem(sys.modules, "ragas", stub)
+    schema = types.ModuleType("ragas.dataset_schema")
+    schema.SingleTurnSample = lambda **kw: kw
+    monkeypatch.setitem(sys.modules, "ragas.dataset_schema", schema)
+    metrics = types.ModuleType("ragas.metrics")
+    for name in ("faithfulness", "answer_relevancy", "context_precision", "context_recall"):
+        setattr(metrics, name, type("M", (), {"strictness": 3})())
+    monkeypatch.setitem(sys.modules, "ragas.metrics", metrics)
+    config = types.ModuleType("ragas.run_config")
+    config.RunConfig = lambda **kw: kw
+    monkeypatch.setitem(sys.modules, "ragas.run_config", config)
+
+
+def test_score_maps_each_row_back_to_the_case_that_produced_it(monkeypatch):
+    """score() indexes the returned frame positionally, which assumes RAGAS preserves the
+    order it was given. If that ever stops holding, every score lands on the wrong case and
+    nothing else would notice."""
+    good, records = outcome(), outcome(contexts=(), grounded=False, citations=())
+    fake_ragas(monkeypatch, [{"faithfulness": 0.9, "answer_relevancy": 0.8,
+                             "context_precision": 0.7, "context_recall": 0.6}])
+    results = ragas_metrics.score([good, records])
+    assert results[0].usable and results[0].scores["faithfulness"] == 0.9
+    assert not results[1].usable        # ineligible, and skipped rather than mis-assigned
+
+
+def test_a_nan_from_ragas_becomes_unavailable_not_zero(monkeypatch):
+    """RAGAS returns NaN for a metric it could not compute. Zero would be read as a bad
+    system rather than a missing measurement."""
+    fake_ragas(monkeypatch, [{"faithfulness": float("nan"), "answer_relevancy": 0.8,
+                              "context_precision": None, "context_recall": 0.6}])
+    scores = ragas_metrics.score([outcome()])[0].scores
+    assert scores["faithfulness"] is None
+    assert scores["context_precision"] is None
+    assert scores["answer_relevancy"] == 0.8
+
+
+def test_one_failure_marks_every_scorable_case(monkeypatch):
+    """Not some. A partial run would make the aggregate silently cover a different set each
+    time, which is the failure the coverage figure exists to make visible."""
+    fake_ragas(monkeypatch, [], blow_up=RuntimeError("provider refused"))
+    results = ragas_metrics.score([outcome(), outcome()])
+    assert all(not r.usable for r in results)
+    assert all("provider refused" in r.unavailable for r in results)

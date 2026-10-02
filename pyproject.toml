@@ -24,7 +24,6 @@ evaluation = [
     "ragas==0.4.3",
     "langchain-groq==1.1.3",
     "langchain-aws==1.7.9",   # 1.8.0 was a day old
-    "openevals==0.2.0",
     # ragas 0.4.3 (the current release) still imports
     # langchain_community.chat_models.vertexai, which 0.4.x moved. Held on the line that
     # has it; without this, importing ragas at all raises ModuleNotFoundError.
