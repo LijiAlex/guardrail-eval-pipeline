@@ -36,7 +36,7 @@ def main() -> None:
     )
     response = boto3.client("bedrock-runtime", region_name=SPEC["region"]).apply_guardrail(
         guardrailIdentifier=identifier,
-        guardrailVersion="DRAFT",
+        guardrailVersion=SPEC.get("version", "DRAFT"),
         source="OUTPUT" if args.output else "INPUT",
         content=[{"text": {"text": text, "qualifiers": ["guard_content"]}}],
     )

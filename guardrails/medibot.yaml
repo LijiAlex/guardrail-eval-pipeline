@@ -7,6 +7,13 @@
 name: gep-medibot
 region: ap-south-1
 
+# The published version the pipeline calls. Bedrock edits always land on DRAFT, so
+# applying this file changes nothing that is running until a new version is published with
+# `scripts/guardrail.py publish` and this line is moved to it. Without the pin, editing a
+# policy silently changes the behaviour of a live system with no version boundary and
+# nothing to roll back to.
+version: "1"
+
 # Standard tier rather than the default Classic: AWS documents it as detecting more
 # reliably for denied topics and prompt attacks, and it allows 1000-character definitions
 # instead of 200 — the limit that forced the first definitions into keyword lists. It

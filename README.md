@@ -330,6 +330,31 @@ Six policies: a denied topic for role and access escalation, a prompt-attack fil
 content filters, PII entities and regexes on output, and contextual grounding with
 relevance.
 
+### The running guardrail is a pinned version, not the draft
+
+```bash
+python scripts/guardrail.py apply   guardrails/medibot.yaml   # edits DRAFT
+python scripts/guardrail.py publish guardrails/medibot.yaml   # freezes DRAFT as a version
+```
+
+Bedrock edits always land on DRAFT. The policy file pins `version: "1"`, so applying it
+changes nothing that is running until a new version is published and that line moves.
+Without the pin, editing a policy silently changes a live system with no version boundary
+and nothing to roll back to.
+
+Demonstrated rather than asserted — the off-topic topic was removed from DRAFT, and:
+
+| | DRAFT | version 1 |
+|---|---|---|
+| before | blocks *"Tell me a joke."* | blocks |
+| topic removed from DRAFT | **passes** | **blocks** |
+| restored | blocks | blocks |
+
+`verify_guardrail.py` and `try_guardrail.py` both read the pinned version, because a suite
+that checked DRAFT would be testing the editing surface rather than what runs.
+`measure_guardrail.py` stays on DRAFT by necessity: measuring needs the observe posture,
+and a published version is immutable.
+
 ### Standard tier, and why the topics are worded the way they are
 
 The guardrail runs on Bedrock's **Standard** safeguard tier rather than the default Classic.

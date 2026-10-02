@@ -60,7 +60,7 @@ def main() -> int:
 
     def verdict(blocks, source):
         response = runtime.apply_guardrail(
-            guardrailIdentifier=identifier, guardrailVersion="DRAFT",
+            guardrailIdentifier=identifier, guardrailVersion=SPEC.get("version", "DRAFT"),
             source=source, content=blocks,
         )
         reasons = []

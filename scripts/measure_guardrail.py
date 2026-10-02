@@ -60,6 +60,8 @@ def mutate_numbers(text: str) -> str:
 def apply(client, guardrail_id: str, *, source: str, blocks: list[dict]) -> dict:
     return client.apply_guardrail(
         guardrailIdentifier=guardrail_id,
+        # DRAFT on purpose: measuring needs the observe posture, which `apply --observe`
+        # writes to DRAFT. A published version is immutable and cannot be put into it.
         guardrailVersion="DRAFT",
         source=source,
         content=blocks,

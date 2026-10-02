@@ -385,3 +385,15 @@ def test_health_says_when_a_guardrail_is_wired_in(stub_client):
     client, _ = stub_client
     app.dependency_overrides[get_guardrail] = blocking_guard
     assert client.get("/health").json()["guardrail"] == "gr-1"
+
+
+def test_the_shipped_policy_pins_a_published_version():
+    """Not DRAFT. Bedrock edits always land on DRAFT, so a pipeline pointed there changes
+    behaviour the moment anyone applies a policy — with no version boundary and nothing to
+    roll back to. Proven by removing a topic from DRAFT: DRAFT stopped blocking, the pinned
+    version did not."""
+    from guardrail_eval_pipeline.config import load_policy
+
+    version = load_policy("guardrails/medibot.yaml").version
+    assert version != "DRAFT", "the policy is pointing at the editing surface"
+    assert version.isdigit(), f"expected a published version number, got {version!r}"

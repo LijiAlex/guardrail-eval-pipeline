@@ -1,8 +1,14 @@
 """Apply `guardrails/<target>.yaml` to Bedrock, so the policy lives in git rather than in a
 console.
 
-    python scripts/guardrail.py show  guardrails/medibot.yaml   # render, call nothing
-    python scripts/guardrail.py apply guardrails/medibot.yaml   # create or update
+    python scripts/guardrail.py show    guardrails/medibot.yaml   # render, call nothing
+    python scripts/guardrail.py apply   guardrails/medibot.yaml   # create or update DRAFT
+    python scripts/guardrail.py publish guardrails/medibot.yaml   # freeze DRAFT as a version
+
+Bedrock edits always land on DRAFT. `publish` snapshots it as an immutable numbered
+version, which is what the pipeline should point at: after that, editing this file and
+applying changes nothing that is running until a new version is published and the file's
+`version:` is moved to it.
 
 `--observe` applies the same policies with every action set to NONE and grounding
 thresholds at zero: nothing blocks, but the scores still come back. That is what makes a
@@ -123,7 +129,7 @@ def find_by_name(client, name: str) -> dict | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["apply", "show"])
+    parser.add_argument("action", choices=["apply", "show", "publish"])
     parser.add_argument("spec", type=Path)
     parser.add_argument("--observe", action="store_true",
                         help="apply with nothing blocking, so scores can be read")
@@ -140,6 +146,20 @@ def main() -> int:
 
     client = boto3.client("bedrock", region_name=spec["region"])
     existing = find_by_name(client, name)
+
+    if args.action == "publish":
+        if not existing:
+            raise SystemExit(f"{name} does not exist yet; apply it first")
+        result = client.create_guardrail_version(
+            guardrailIdentifier=existing["id"],
+            description=f"Published from {args.spec.name}",
+        )
+        version = result["version"]
+        print(f"published {name} ({existing['id']}) as version {version}")
+        print(f"  pin it by setting `version: \"{version}\"` in {args.spec}")
+        print("  DRAFT keeps moving; this version does not")
+        return 0
+
     posture = "observe (nothing blocks)" if args.observe else "enforcing"
 
     if existing:
