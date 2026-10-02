@@ -7,3 +7,6 @@ reports/
 
 # Event log, written at runtime
 logs/
+
+# Saved evaluation runs (regenerable; the report is what is committed)
+runs/
