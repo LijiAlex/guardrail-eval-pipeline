@@ -44,6 +44,17 @@ class TargetConfig:
     raw: dict[str, Any] = field(default_factory=dict)
 
     @property
+    def project(self) -> str:
+        """The observability project this target's traces belong in.
+
+        Defaults to the target's name, because a trace that crosses both processes is only
+        one trace if both report to the same project — and the target already reports under
+        its own name. Override with `observability.project` when it reports under another.
+        """
+        configured = (self.raw.get("observability") or {}).get("project")
+        return configured or self.name
+
+    @property
     def default_principal(self) -> str | None:
         """Return the first principal listed in the config, or None when none are configured.
 

@@ -15,6 +15,8 @@ import unicodedata
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from langsmith import traceable
+
 from guardrail_eval_pipeline.config import GuardrailPolicy
 from guardrail_eval_pipeline.contracts import TargetResponse, Verdict
 from guardrail_eval_pipeline.guardrails import deterministic
@@ -97,6 +99,7 @@ class BedrockGuardrail:
         )
 
     # --- the checks -----------------------------------------------------------
+    @traceable(run_type="tool", name="guardrail input")
     def check_input(self, text: str) -> Verdict:
         """Judge a question before the target sees it.
 
@@ -106,6 +109,7 @@ class BedrockGuardrail:
         blocks = [{"text": {"text": text, "qualifiers": ["guard_content"]}}]
         return self._apply("INPUT", blocks, self.input_message)
 
+    @traceable(run_type="tool", name="guardrail output")
     def check_output(self, response: TargetResponse, *, question: str,
                      allowed_scopes: list[str] | None = None) -> Verdict:
         """Judge an answer before the caller sees it.

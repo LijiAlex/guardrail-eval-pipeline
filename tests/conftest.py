@@ -16,6 +16,16 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def no_tracing(monkeypatch):
+    """Spans stay local. With an API key present the suite would otherwise ship hundreds
+    of test traces into the real project."""
+    monkeypatch.setenv("LANGSMITH_TRACING", "false")
+    # A placeholder key: the tests build run trees locally and never send them, but the
+    # client warns on every construction without one.
+    monkeypatch.setenv("LANGSMITH_API_KEY", "not-used-tests-run-local")
+
+
+@pytest.fixture(autouse=True)
 def no_aws(monkeypatch):
     def refuse(*args, **kwargs):
         service = args[0] if args else kwargs.get("service_name", "?")

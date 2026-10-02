@@ -28,6 +28,10 @@ TARGET_HOME="${MEDIBOT_HOME:-$(cd "$HERE/.." && pwd)/Assignment 2 medibot}"
 EXPOSE_EVAL=true
 if [ "${1:-}" = "--no-eval" ]; then EXPOSE_EVAL=false; fi
 
+# LANGSMITH_PROJECT is deliberately not set here. The pipeline derives it from the target
+# it watches, which is the same name the target reports under, so both halves of a request
+# land in one project on their own. Exporting it before running overrides both.
+
 log() { printf '  %s\n' "$*"; }
 die() { printf '\n  %s\n\n' "$*" >&2; exit 1; }
 

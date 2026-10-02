@@ -6,6 +6,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.141.1",
     "httpx>=0.28.1",
+    "langsmith==0.14.0",
     "pydantic>=2.10.6",
     "boto3==1.43.100",
     "python-dotenv>=1.2.3",

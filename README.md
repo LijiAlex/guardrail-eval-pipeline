@@ -553,6 +553,58 @@ No proxy, no target, no HTTP hop — the checks take text and passages and retur
 which is what makes "a shared layer any system can be wired into" a fact rather than a
 claim.
 
+## One trace across both processes
+
+The pipeline and the target are separate processes. Without trace context passed between
+them, one question produces two unrelated traces and nobody can see a retrieval beside the
+guardrail decision about it.
+
+`handle` is one span, and hands its context to the target through the `trace_headers` the
+adapter already forwarded. The target adopts it as its parent:
+
+```
+guarded request [chain] 17956ms 1090 tokens        <- pipeline
+   guardrail input    [tool]       528ms           <- pipeline
+   chat               [chain]    16820ms           <- the target, another process
+      hybrid rag      [chain]    15209ms
+         hybrid retrieve    [retriever]  6468ms
+         cross-encoder rerank [tool]     7933ms
+         ChatGroq           [llm]         777ms  1090 tokens
+   guardrail output   [tool]       526ms           <- pipeline
+```
+
+Two things that breakdown settles. Token usage reaches the root span on its own, which is
+why nothing here counts tokens or holds a stopwatch — spec l.60's per-request latency and
+tokens come from the trace, per stage rather than as one number. And the model is **777ms
+of a 17.9 second request**: the cost is retrieval and reranking from cold, not generation.
+
+A blocked request is traced too — it is the one a reviewer opens first, and the path most
+likely to leave nothing behind, since the target is never called:
+
+```
+guarded request [chain] 560ms   tags=['blocked']
+   metadata: blocked=True, reasons=['Off-Topic Requests'], failed_closed=False
+   guardrail input [tool] 559ms
+```
+
+Spans are tagged `answered`, `blocked`, `target-refused` or `failed-closed`. Three outcomes,
+not two: a report that merged "we blocked it" with "the target refused" would read the
+target behaving correctly as an attack, and one that merged a block with a guardrail outage
+would read the outage as a wave of them.
+
+### Which project
+
+The project is derived from the target — `targets/medibot.yaml` is named `medibot`, which is
+what the target already reports under, so both halves land together without anything being
+exported. It belongs to the system being watched, not to the watcher: a pipeline that named
+itself would pile every target's traces into one project. `observability.project` in the
+target config overrides it, and an explicit `LANGSMITH_PROJECT` overrides both.
+
+Tracing is optional. With `LANGSMITH_TRACING` unset the pipeline behaves identically and
+reports latency and tokens as unavailable rather than as zero. That was verified the hard
+way: an early run had no API key, every span upload failed with 401, and both requests still
+returned 200. Observability going down does not take the service with it.
+
 ## What the layer actually changes
 
 The same ten questions asked twice — once straight at the target on `:8000`, once through

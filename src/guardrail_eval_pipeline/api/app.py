@@ -32,12 +32,23 @@ from guardrail_eval_pipeline.contracts import Target, TargetAuthError, TargetErr
 
 DEFAULT_TARGET_CONFIG = "targets/medibot.yaml"
 
+def _use_targets_project() -> None:
+    """Send this process's spans to the project the target reports under.
+
+    Set before anything is traced, and only when nothing has set it already: an explicit
+    LANGSMITH_PROJECT, from the environment or `.env`, is someone saying where they want
+    their traces and is not ours to overrule.
+    """
+    os.environ.setdefault("LANGSMITH_PROJECT", get_config().project)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Release the target's connection pool when the application shuts down.
 
     The target is cached for the life of the process, so nothing else would close it.
     """
+    _use_targets_project()
     yield
     close = getattr(get_target(), "close", None)
     if close is not None:
