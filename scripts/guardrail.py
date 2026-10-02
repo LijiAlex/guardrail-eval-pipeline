@@ -34,6 +34,7 @@ def build(spec: dict, *, observe: bool = False) -> dict:
         "blockedInputMessaging": spec["blocked_input_message"],
         "blockedOutputsMessaging": spec["blocked_output_message"],
         "contentPolicyConfig": {
+            "tierConfig": {"tierName": spec.get("tier", "CLASSIC")},
             "filtersConfig": [
                 {
                     "type": f["type"],
@@ -49,6 +50,10 @@ def build(spec: dict, *, observe: bool = False) -> dict:
             ]
         },
         "topicPolicyConfig": {
+            # Standard tier detects more reliably and raises the definition limit from 200
+            # characters to 1000, which is what makes a definition in AWS's recommended
+            # form fit at all. It requires cross-Region inference, set below.
+            "tierConfig": {"tierName": spec.get("tier", "CLASSIC")},
             "topicsConfig": [
                 {
                     "name": t["name"],
@@ -101,6 +106,8 @@ def build(spec: dict, *, observe: bool = False) -> dict:
             ]
         },
     }
+    if spec.get("cross_region_profile"):
+        body["crossRegionConfig"] = {"guardrailProfileIdentifier": spec["cross_region_profile"]}
     return body
 
 

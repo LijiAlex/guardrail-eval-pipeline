@@ -276,3 +276,16 @@ def test_scope_is_unavailable_rather_than_passed_when_the_target_will_not_say():
     assert deterministic.scope_leak([CLINICAL], None) is None
     assert deterministic.uncontained_identifiers("PAT-00000", [], {"p": r"PAT-\d{5}"}) is None
     assert deterministic.bad_citations("x", ["a.pdf"], []) is None
+
+
+def test_a_target_refusal_keeps_its_own_message():
+    """State B: the target declined on its own terms, and its wording is specific and
+    correct. Replacing it with the generic refusal tells the user less than the target
+    already had."""
+    from guardrail_eval_pipeline.adapters.stub import StubTarget
+
+    target = StubTarget({})          # an unknown question refuses rather than inventing
+    result = service.handle("anything", target=target, guardrails=guard(ALLOWED))
+    assert result.blocked is False
+    assert result.response.refused is True
+    assert result.response.answer != REFUSAL_OUT
