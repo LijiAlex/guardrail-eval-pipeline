@@ -91,7 +91,13 @@ def build(run, dataset) -> str:
 
     for metric in METRICS:
         value = run.ragas_aggregate.get(metric)
-        sections.append(Section(metric, value, THRESHOLDS[metric]))
+        scored, eligible = (getattr(run, "ragas_coverage", {}) or {}).get(metric, (0, 0))
+        detail = f"{scored}/{eligible} eligible cases scored"
+        # An aggregate over a third of the set is an anecdote. Say so next to the number
+        # rather than letting the mean imply a coverage it does not have.
+        if eligible and scored < eligible:
+            detail += " — incomplete"
+        sections.append(Section(metric, value, THRESHOLDS[metric], detail))
 
     judged = [c.judge.get("mean") for c in run.cases
               if isinstance(c.judge, dict) and isinstance(c.judge.get("mean"), (int, float))]
@@ -131,11 +137,11 @@ def build(run, dataset) -> str:
         lines.append("")
 
     lines += ["## Signals", "",
-              "| signal | value | threshold | status |", "|---|---|---|---|"]
+              "| signal | value | threshold | status | coverage |", "|---|---|---|---|---|"]
     for s in sections:
         value = "—" if s.value is None else f"{s.value:.3f}"
         threshold = "—" if s.threshold is None else f"{s.threshold:.2f}"
-        lines.append(f"| {s.name} | {value} | {threshold} | {s.status} |")
+        lines.append(f"| {s.name} | {value} | {threshold} | {s.status} | {s.detail} |")
     lines.append("")
 
     lines += ["## Guardrail decisions", "",

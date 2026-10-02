@@ -67,7 +67,11 @@ def _evaluator():
         raise RuntimeError("GROQ_API_KEY is not set; RAGAS cannot run")
     # Temperature zero: the spec asks that running twice against an unchanged system give
     # consistent results, and these metrics are themselves model calls.
-    llm = ChatGroq(model=EVALUATOR_MODEL, temperature=0)
+    #
+    # A generous timeout and retries because the provider rate-limits: the first run lost
+    # most of its scores to TimeoutError, and a metric that silently drops cases is worse
+    # than one that takes longer.
+    llm = ChatGroq(model=EVALUATOR_MODEL, temperature=0, timeout=120, max_retries=5)
     embeddings = BedrockEmbeddings(model_id=EMBEDDING_MODEL, region_name=EMBEDDING_REGION)
     return LangchainLLMWrapper(llm), LangchainEmbeddingsWrapper(embeddings)
 
@@ -96,10 +100,21 @@ def score(outcomes) -> list[Scored]:
             )
             for o, _ in scorable
         ])
+        from ragas.run_config import RunConfig
+
+        # answer_relevancy generates `strictness` paraphrases of the question in one call,
+        # which it does by asking for n completions. Groq accepts n=1 only and rejects the
+        # rest with a 400, so every case using it failed. One paraphrase, and the metric
+        # runs.
+        answer_relevancy.strictness = 1
+
         frame = evaluate(
             dataset,
             metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
             llm=llm, embeddings=embeddings,
+            # Two at a time. The default fans out far enough to trip the rate limit, and a
+            # throttled job comes back as a missing score rather than an error.
+            run_config=RunConfig(max_workers=2, timeout=180, max_retries=5),
         ).to_pandas()
     except Exception as exc:  # noqa: BLE001
         # One failure marks every scorable case, rather than leaving some scored and some
@@ -124,3 +139,17 @@ def aggregate(results: list[Scored]) -> dict[str, float | None]:
         values = [v for v in values if v is not None]
         summary[metric] = sum(values) / len(values) if values else None
     return summary
+
+
+def coverage(results: list[Scored]) -> dict[str, tuple[int, int]]:
+    """How many eligible cases each metric actually produced a score for.
+
+    An aggregate hides this, and it is the difference between a result and an anecdote: a
+    faithfulness of 1.00 over two of twelve cases is not the same claim as 1.00 over
+    twelve. Individual metric jobs can fail — a provider timeout, a rejected parameter —
+    and a mean over whatever survived would quietly describe a different set each run.
+    """
+    eligible_count = sum(1 for r in results if r.usable)
+    return {metric: (sum(1 for r in results if r.usable and r.scores.get(metric) is not None),
+                     eligible_count)
+            for metric in METRICS}

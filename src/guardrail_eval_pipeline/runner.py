@@ -52,6 +52,7 @@ class Run:
     cases: list[CaseResult] = field(default_factory=list)
     probes: list[dict[str, Any]] = field(default_factory=list)
     ragas_aggregate: dict[str, float | None] = field(default_factory=dict)
+    ragas_coverage: dict[str, list[int]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
 
@@ -137,6 +138,7 @@ def add_ragas(dataset: Dataset, run: Run) -> None:
         result.ragas = ({"unavailable": score.unavailable} if not score.usable
                         else {k: v for k, v in score.scores.items()})
     run.ragas_aggregate = ragas_metrics.aggregate(scored)
+    run.ragas_coverage = {k: list(v) for k, v in ragas_metrics.coverage(scored).items()}
 
 
 def add_judge(dataset: Dataset, run: Run, *, pace_s: float = 0.0) -> None:
@@ -188,6 +190,7 @@ def save(run: Run, path: Path) -> Path:
 def load_run(path: Path) -> Run:
     data = json.loads(Path(path).read_text())
     run = Run(target=data["target"], ragas_aggregate=data.get("ragas_aggregate", {}),
+              ragas_coverage=data.get("ragas_coverage", {}),
               notes=data.get("notes", []), probes=data.get("probes", []))
     run.cases = [CaseResult(**case) for case in data["cases"]]
     return run
