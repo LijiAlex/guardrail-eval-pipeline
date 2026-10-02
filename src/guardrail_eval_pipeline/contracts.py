@@ -68,6 +68,10 @@ class TargetResponse:
     refused: bool = False
     refusal_reason: str | None = None
     principal: str | None = None
+    # Whether this answer is supposed to have been built from `contexts`. An answer drawn
+    # from records has none and is correct; a passage answer with none means the target was
+    # never asked for them. Identical from here, so the adapter has to say which.
+    grounded: bool = False
     tokens: dict[str, int] | None = None
     timings: dict[str, float] | None = None
     raw: dict[str, Any] = field(default_factory=dict)

@@ -1,10 +1,8 @@
 """The input guardrail: what it decides, and what it does when it cannot decide.
 
 Driven through `BedrockGuardrail` with a stub client, so every case is offline and the
-failure paths can be provoked on purpose rather than waited for.
-
-The responses below are shaped like real ones. The block and pass cases were captured from
-the live guardrail during B1; the malformed ones are what this code must survive.
+failure paths can be provoked on purpose rather than waited for. The responses below are
+shaped like real ones; the malformed ones are what this code must survive.
 """
 
 from __future__ import annotations
@@ -47,9 +45,15 @@ class FakeClient:
         return self.response
 
 
+# The same patterns the policy file configures Bedrock with, so the containment check and
+# the masking cannot drift apart.
+PATTERNS = {"patient_id": r"\bPAT-[0-9]{5}\b", "claim_id": r"\bCLM-[0-9]{4}-[0-9]{4}\b"}
+
+
 def guard(response) -> BedrockGuardrail:
     return BedrockGuardrail(identifier="gr-1", version="DRAFT", client=FakeClient(response),
-                            input_message=REFUSAL_IN, output_message=REFUSAL_OUT)
+                            input_message=REFUSAL_IN, output_message=REFUSAL_OUT,
+                            identifier_patterns=PATTERNS)
 
 
 # --- the two ordinary outcomes ------------------------------------------------
@@ -160,3 +164,115 @@ def test_without_a_guardrail_the_question_goes_straight_through():
     assert result.blocked is False
     assert result.verdict is None
     assert len(target.calls) == 1
+
+
+# --- the output layer ---------------------------------------------------------
+from dataclasses import replace  # noqa: E402
+
+from guardrail_eval_pipeline.contracts import Retrieved, TargetResponse  # noqa: E402
+
+CLINICAL = Retrieved(text="Meropenem 1 g every 8 hours. Formulary tier 3.",
+                     scope="clinical", label="drug_formulary.pdf / Antibiotics")
+
+MASKED = {
+    "action": "GUARDRAIL_INTERVENED",
+    "actionReason": "Guardrail masked.",
+    "outputs": [{"text": "Claim {claim_id} was rejected."}],
+    "assessments": [{"sensitiveInformationPolicy": {
+        "regexes": [{"name": "claim_id", "action": "ANONYMIZED"}]}}],
+}
+
+
+def answered(**kwargs) -> TargetResponse:
+    base = TargetResponse(answer="Meropenem is 1 g every 8 hours.", contexts=[CLINICAL],
+                          citations=["drug_formulary.pdf"], principal="doctor", grounded=True)
+    return replace(base, **kwargs)
+
+
+def test_grounding_is_sent_the_passages_the_question_and_the_answer():
+    guardrail = guard(ALLOWED)
+    guardrail.check_output(answered(), question="dose of meropenem?")
+    sent = guardrail.client.calls[-1]
+    assert sent["source"] == "OUTPUT"
+    qualifiers = [block["text"]["qualifiers"][0] for block in sent["content"]]
+    assert qualifiers == ["grounding_source", "query", "guard_content"]
+
+
+def test_citation_markers_are_stripped_before_the_answer_is_graded():
+    """Grounding scores the answer's wording, and the markers are not part of it."""
+    guardrail = guard(ALLOWED)
+    guardrail.check_output(answered(answer="Dose is 1 g【1†L1-L3】."), question="q")
+    graded = guardrail.client.calls[-1]["content"][-1]["text"]["text"]
+    assert graded == "Dose is 1 g."
+
+
+def test_an_answer_that_should_have_passages_but_has_none_is_blocked():
+    """Otherwise forgetting to expose the envelope silently removes the grounding check
+    while every answer keeps flowing."""
+    verdict = guard(ALLOWED).check_output(answered(contexts=[]), question="q")
+    assert verdict.blocked is True
+    assert verdict.failed_closed is True
+    assert verdict.reasons == ("contexts-missing",)
+
+
+def test_an_answer_from_records_is_not_masked():
+    """Only entitled roles reach that branch, so masking withholds the answer from the
+    one caller allowed to have it."""
+    records = answered(answer="Claim CLM-2024-1000 was rejected.", contexts=[],
+                       citations=[], grounded=False)
+    verdict = guard(MASKED).check_output(records, question="which claims were rejected?")
+    assert verdict.blocked is False
+    assert verdict.masked_text is None          # the original answer stands
+    assert "claim_id" in verdict.reasons        # and the log still records what was found
+
+
+def test_a_masked_document_answer_keeps_the_masked_text():
+    verdict = guard(MASKED).check_output(answered(), question="q")
+    assert verdict.blocked is False
+    assert verdict.masked_text == "Claim {claim_id} was rejected."
+
+
+def test_a_passage_outside_the_callers_reach_blocks():
+    """The check Bedrock cannot make: it does not know the target has roles at all."""
+    verdict = guard(ALLOWED).check_output(answered(), question="q", allowed_scopes=["nursing"])
+    assert verdict.blocked is True
+    assert "scope-leak:clinical" in verdict.reasons
+
+
+def test_a_passage_within_reach_passes():
+    verdict = guard(ALLOWED).check_output(answered(), question="q",
+                                          allowed_scopes=["clinical", "general"])
+    assert verdict.blocked is False
+
+
+def test_an_identifier_in_no_passage_blocks():
+    """Stronger than matching a shape: this one was never shown to the caller."""
+    leaky = answered(answer="See claim CLM-2024-1000 for the details.")
+    verdict = guard(ALLOWED).check_output(leaky, question="q")
+    assert verdict.blocked is True
+    assert "claim_id:CLM-2024-1000" in verdict.reasons
+
+
+def test_a_wrong_citation_is_recorded_but_does_not_block():
+    """A miscounted marker is a correctness problem, not a leak."""
+    verdict = guard(ALLOWED).check_output(
+        answered(answer="As described 【4】.", citations=["invented.pdf"]), question="q")
+    assert verdict.blocked is False
+    assert "citation-out-of-range:4" in verdict.reasons
+    assert "uncited-source:invented.pdf" in verdict.reasons
+
+
+def test_the_output_check_fails_closed_too():
+    verdict = guard(TimeoutError("read timeout")).check_output(answered(), question="q")
+    assert verdict.blocked is True
+    assert verdict.failed_closed is True
+    assert verdict.message == REFUSAL_OUT
+
+
+def test_scope_is_unavailable_rather_than_passed_when_the_target_will_not_say():
+    """A target with no notion of zones reports unavailable. Treating silence as a pass
+    would print a clean result for a check that never ran."""
+    from guardrail_eval_pipeline.guardrails import deterministic
+    assert deterministic.scope_leak([CLINICAL], None) is None
+    assert deterministic.uncontained_identifiers("PAT-00000", [], {"p": r"PAT-\d{5}"}) is None
+    assert deterministic.bad_citations("x", ["a.pdf"], []) is None

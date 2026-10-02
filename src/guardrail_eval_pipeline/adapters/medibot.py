@@ -172,6 +172,25 @@ class MediBotTarget:
         response = self._request(method, path, json=body, headers=headers or {})
         return response.status_code, self._json(response)
 
+    # --- what this principal may read ----------------------------------------
+    def allowed_scopes(self, principal: str) -> list[str] | None:
+        """The access zones this principal may read, as MediBot itself reports them.
+
+        Asked rather than copied: a second copy of its role-to-collection matrix would be
+        two copies of one policy with nothing to detect drift between them.
+
+        None when it will not say. Honest limit: this checks the answer against the policy
+        the target publishes, so it catches a filter bug, not a lying target.
+        """
+        try:
+            status, body = self.forward("GET", f"/collections/{principal}")
+        except TargetError:
+            return None
+        if status != 200:
+            return None
+        scopes = body.get("collections")
+        return list(scopes) if isinstance(scopes, list) else None
+
     # --- translation --------------------------------------------------------
     @staticmethod
     def _translate(body: dict) -> TargetResponse:
@@ -211,6 +230,9 @@ class MediBotTarget:
             refused=body.get("refusal") is not None,
             refusal_reason=body.get("refusal"),
             principal=body.get("role"),
+            # MediBot answers documents from passages and analytics from SQL rows. Only the
+            # first kind can be checked against what was retrieved.
+            grounded=body.get("retrieval_type") == "hybrid_rag" and body.get("refusal") is None,
             tokens=envelope.get("tokens"),
             timings=envelope.get("timings"),
             raw=body,

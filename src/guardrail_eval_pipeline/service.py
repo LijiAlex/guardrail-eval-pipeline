@@ -3,28 +3,29 @@
 Two callers share this function rather than an HTTP contract — the API, and the evaluation
 runner in process — so the runner cannot evaluate an unguarded system by mistake.
 
-No timing is taken here. Latency and token usage both come from the trace, where they are
-recorded per stage rather than as one number for the whole request, and where nothing has
-to be maintained by hand. With tracing switched off they are reported **unavailable** — the
-same rule this pipeline applies to every other measurement it could not take, because a
-zero that means "we did not look" is indistinguishable from one that means "it failed".
+No timing is taken here. Latency and token usage come from the trace, per stage rather
+than as one number, and are reported unavailable when tracing is off rather than
+fabricated as zero.
 
 The input guardrail runs here. The output one arrives in B3; its seam is marked below.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from guardrail_eval_pipeline.contracts import Target, TargetResponse, Verdict
 
 
-class InputGuard(Protocol):
-    """Anything that can judge a question. Kept structural so the service depends on the
-    check rather than on Bedrock."""
+class Guard(Protocol):
+    """Anything that can judge a question and an answer. Structural, so the service depends
+    on the checks rather than on Bedrock."""
 
     def check_input(self, text: str) -> Verdict: ...
+
+    def check_output(self, response: TargetResponse, *, question: str,
+                     allowed_scopes: list[str] | None) -> Verdict: ...
 
 
 @dataclass
@@ -57,7 +58,7 @@ def handle(
     token: str | None = None,
     principal: str | None = None,
     trace_headers: dict[str, str] | None = None,
-    guardrails: InputGuard | None = None,
+    guardrails: Guard | None = None,
 ) -> Guarded:
     """Answer one question through the guardrails.
 
@@ -82,7 +83,35 @@ def handle(
 
     response = target.ask(question, principal=principal, token=token, trace_headers=trace_headers)
 
-    # SEAM (B3): check_output(response.answer, response.contexts, response.principal).
-    # The principal arrives with the response, from the only party that can verify it.
+    if guardrails is None:
+        return Guarded(response=response, verdict=verdict)
 
-    return Guarded(response=response, verdict=verdict)
+    # The principal comes back with the response, so the scope check runs against the
+    # identity the target actually acted on rather than a claimed one.
+    out = guardrails.check_output(
+        response,
+        question=question,
+        allowed_scopes=_scopes_for(target, response.principal),
+    )
+    if out.blocked:
+        return Guarded(
+            response=TargetResponse(answer=out.message or "", principal=response.principal),
+            blocked=True,
+            verdict=out,
+        )
+    if out.masked_text is not None:
+        # Masked, not blocked: the answer stands with entities replaced, metadata intact.
+        response = replace(response, answer=out.masked_text)
+    return Guarded(response=response, verdict=out)
+
+
+def _scopes_for(target: Target, principal: str | None) -> list[str] | None:
+    """What the target says this principal may read, or None if it will not say.
+
+    An adapter without `allowed_scopes` is not a failure: the check reports unavailable,
+    which is not the same as reporting that nothing leaked.
+    """
+    ask = getattr(target, "allowed_scopes", None)
+    if ask is None or principal is None:
+        return None
+    return ask(principal)

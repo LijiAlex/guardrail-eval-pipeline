@@ -166,12 +166,12 @@ set `MEDIBOT_HOME` if it lives elsewhere.
 
 ```bash
 ./run.sh              # both services
-./run.sh --eval       # and ask the target for the passages it retrieved
+./run.sh --no-eval    # without the passages, which the output guardrail needs
 ```
 
 ```
   target   : .../Assignment 2 medibot
-  passages : not exposed (pass --eval to turn them on)
+  passages : exposed, so the output guardrail can ground answers against them
 
   starting the target on :8000 ...
   target ready after 7s
@@ -185,9 +185,10 @@ Order matters, which is why the script enforces it: the pipeline answers `502 ta
 unavailable` for as long as the target is unreachable. The target is the slow half — it
 loads an embedding model and a cross-encoder before it will answer.
 
-The `--eval` flag sets `MEDIBOT_EXPOSE_EVAL` on the target, which adds the retrieved
-passages to its response so the pipeline can check an answer against them. Nothing needs
-it yet; the grounding check does.
+The passages are on by default. `MEDIBOT_EXPOSE_EVAL` makes the target return what it
+retrieved, and grounding scores an answer against exactly that — so without them a document
+answer cannot be checked and is withheld rather than passed unexamined. `--no-eval` is for
+seeing what the target does on its own, and in that mode document questions are refused.
 
 Logs go to `/tmp/medibot.log` and `/tmp/guardrail-pipeline.log`, since two servers writing
 to one terminal is unreadable. The script does not start the UI — that command is printed
@@ -344,11 +345,16 @@ measured: eleven real answers from the target, against three kinds of deliberate
 | relevance                | **0.93**            | 0.28                   | a gap of 0.65 |
 
 The raw row is the finding. Three *correct* answers scored 0.19, 0.25 and 0.46, and the
-cause was mostly punctuation — the target's citation markers, and a U+2011 non-breaking
-hyphen in `PROC‑RAD‑01` where the source document has an ASCII one. Stripping the markers
-and folding to NFKC lifted those three to 0.97, 0.83 and 0.98, while genuine failures
-stayed at or below 0.19. **The output guardrail must normalise before grounding**, or the
-threshold is measuring typography.
+cause was the target's `【1†L1-L3】` citation markers. Stripping them lifts those three to
+0.97, 0.83 and 0.98, while genuine failures stay at or below 0.19. **The output guardrail
+must normalise before grounding**, or the threshold is measuring typography.
+
+Separating the two normalisation steps corrected an earlier reading of this. The first
+write-up credited the gain to NFKC folding and to a U+2011 hyphen in `PROC‑RAD‑01` where
+the source has an ASCII one. Measured apart, **NFKC moves none of the three scores at all**,
+and forcing hyphens to ASCII made one answer worse (0.97 → 0.83). The markers are the whole
+effect. NFKC is still applied, because the deterministic checks below compare strings
+exactly and a narrow no-break space is not a space.
 
 At AWS's suggested `0.75` against raw answers, 3 of 11 correct answers would have been
 blocked. The chosen `0.50` sits near the middle of the measured gap.
@@ -459,6 +465,61 @@ Live, through the real guardrail:
 
 Each answer keeps the target's six-field shape, so a refusal renders as a refusal rather
 than as a broken page.
+
+## The output guardrail
+
+Grounding, relevance, PII and content from Bedrock, plus three checks it structurally
+cannot make — it does not know the target has roles, which passages this caller was shown,
+or what the answer cited.
+
+| check | kind | on failure |
+|---|---|---|
+| grounding, relevance | measured, thresholds 0.50 / 0.60 | block |
+| PII entities and identifier regexes | Bedrock | mask |
+| **scope leak** — passage from a zone this caller may not read | comparison | block |
+| **identifier containment** — an id in no passage behind the answer | comparison | block |
+| **citation correctness** — cited document retrieved, `【n】` in range | comparison | **recorded, not blocked** |
+
+The last row is deliberate. A miscounted citation marker is a correctness problem, not a
+leak, and withholding a correct answer over one would be a refusal wearing a safety label —
+the mistake this layer has already made three times (a diagnosis-code regex, a PII name
+entity, and masking records the caller was entitled to). The judge grades citation
+correctness; this records it.
+
+The scope check **asks the target** what a principal may read, through `allowed_scopes()`
+on the adapter, rather than keeping a copy of its role matrix. Two copies of one policy have
+nothing to detect drift between them. Honest limit: this verifies the answer is consistent
+with the policy the target publishes — it catches a filter bug, not a lying target.
+
+### Three orderings that matter
+
+**Strip citation markers before grounding.** Measured: three correct answers score 0.19,
+0.25 and 0.46 with them and 0.97, 0.83 and 0.98 without.
+
+**Check citations on the raw answer.** Normalising removes the very markers that check
+reads, so running it afterwards finds nothing and always passes. A test pins this.
+
+**An answer that should have passages and has none is blocked**, rather than quietly
+skipped. Otherwise forgetting a flag removes the grounding check while every answer keeps
+flowing. An answer drawn from records rather than documents is a different case: it has no
+passages by nature, and the target's own gate already decided that caller was entitled to
+it, so nothing there is masked.
+
+### Using the checks without the pipeline
+
+```bash
+python examples/inline_guardrail.py
+```
+
+```
+  allowed  Meropenem is 1 g every 8 hours, formulary tier 3.
+  BLOCKED  Meropenem is 2 g every 4 hours, formulary tier 1.
+           reasons (log only): ['GROUNDING', 'RELEVANCE']
+```
+
+No proxy, no target, no HTTP hop — the checks take text and passages and return a verdict,
+which is what makes "a shared layer any system can be wired into" a fact rather than a
+claim.
 
 ## Wiring up a different system
 

@@ -10,11 +10,27 @@ pattern-matched.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+import unicodedata
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from guardrail_eval_pipeline.config import GuardrailPolicy
-from guardrail_eval_pipeline.contracts import Verdict
+from guardrail_eval_pipeline.contracts import TargetResponse, Verdict
+from guardrail_eval_pipeline.guardrails import deterministic
+
+CITATION_MARKER = re.compile(r"【[^】]*】")
+
+
+def normalise(text: str) -> str:
+    """Strip citation markers, then fold unicode punctuation.
+
+    Grounding scores the answer's wording, so the target's `【1†L1-L3】` markers depress a
+    correct answer badly. NFKC does not affect grounding, and is applied for the
+    deterministic checks, which compare strings exactly and would miss an identifier
+    written with a narrow no-break space. See the README for the measurements.
+    """
+    return unicodedata.normalize("NFKC", CITATION_MARKER.sub("", text))
 
 # Where a blocked or masked entry can appear in an assessment.
 _ASSESSMENT_PATHS = (
@@ -29,9 +45,8 @@ _ASSESSMENT_PATHS = (
 def _client(region: str) -> Any:
     """A Bedrock runtime client that gives up rather than hanging.
 
-    A guardrail that waits indefinitely becomes the request's latency, and the caller
-    cannot tell a slow check from a failed one. Short timeouts turn that into a
-    fail-closed block, which is a decision rather than a hang.
+    A guardrail that waits indefinitely becomes the request's latency. Short timeouts turn
+    that into a fail-closed block, which is a decision rather than a hang.
     """
     import boto3
     from botocore.config import Config
@@ -53,13 +68,14 @@ class BedrockGuardrail:
     client: Any
     input_message: str
     output_message: str
+    identifier_patterns: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_policy(cls, policy: GuardrailPolicy, *, client: Any | None = None) -> BedrockGuardrail:
         """Resolve the guardrail named in a policy file to the one deployed in Bedrock.
 
-        Resolving by name rather than storing an id keeps the policy file the single
-        source: the id is an artefact of deployment, the name is the thing a person wrote.
+        By name, not by id: the id is an artefact of deployment, so storing it would make
+        the policy file stop being the single source.
         """
         import boto3
 
@@ -73,6 +89,7 @@ class BedrockGuardrail:
                         client=client or _client(policy.region),
                         input_message=policy.input_message,
                         output_message=policy.output_message,
+                        identifier_patterns=policy.identifier_patterns,
                     )
         raise LookupError(
             f"no guardrail named {policy.name!r} in {policy.region}. "
@@ -83,11 +100,70 @@ class BedrockGuardrail:
     def check_input(self, text: str) -> Verdict:
         """Judge a question before the target sees it.
 
-        Properties of the text alone — injection, denied topics, abuse — so this needs no
-        identity. Who is asking is settled by the token the target verifies.
+        Properties of the text alone, so no identity is needed: who is asking is settled by
+        the token the target verifies.
         """
         blocks = [{"text": {"text": text, "qualifiers": ["guard_content"]}}]
         return self._apply("INPUT", blocks, self.input_message)
+
+    def check_output(self, response: TargetResponse, *, question: str,
+                     allowed_scopes: list[str] | None = None) -> Verdict:
+        """Judge an answer before the caller sees it.
+
+        Grounding needs the passages, the question and the answer together.
+
+        An answer not built from passages — drawn from records, or a refusal — cannot be
+        grounded, so that is reported unavailable, and nothing in it is masked: the target
+        answered it without refusing, so its own gate already settled what this caller may
+        see. An answer that should have carried passages and did not is the opposite case
+        and blocks, so that losing the check by forgetting a flag is loud.
+        """
+        answer = normalise(response.answer)
+
+        if response.grounded and not response.contexts:
+            return Verdict(
+                blocked=True, failed_closed=True, reasons=("contexts-missing",),
+                message=self.output_message,
+                detail="the answer was built from passages but none were supplied, so it "
+                       "cannot be grounded",
+            )
+
+        blocks: list[dict] = []
+        if response.contexts:
+            blocks += [{"text": {"text": c.text, "qualifiers": ["grounding_source"]}}
+                       for c in response.contexts]
+            blocks.append({"text": {"text": question, "qualifiers": ["query"]}})
+        blocks.append({"text": {"text": answer, "qualifiers": ["guard_content"]}})
+
+        verdict = self._apply("OUTPUT", blocks, self.output_message)
+
+        # The checks Bedrock cannot make. Decided by comparison, so they block outright
+        # rather than contributing to a score.
+        leaked = deterministic.scope_leak(response.contexts, allowed_scopes)
+        uncontained = deterministic.uncontained_identifiers(
+            answer, response.contexts, self.identifier_patterns)
+        # Reported, never blocking: a miscounted marker is a correctness problem, not a
+        # leak. The judge grades citation correctness; this records it.
+        # The RAW answer: normalising strips the markers this check reads.
+        citations = deterministic.bad_citations(
+            response.answer, response.citations, response.contexts)
+
+        definite = tuple(f"scope-leak:{s}" for s in leaked or ()) + tuple(uncontained or ())
+        noted = tuple(citations or ())
+        if definite:
+            return Verdict(blocked=True, reasons=verdict.reasons + definite + noted,
+                           message=self.output_message, usage=verdict.usage)
+        if noted:
+            verdict = replace(verdict, reasons=verdict.reasons + noted)
+
+        if verdict.masked_text is not None and not response.contexts:
+            # Masking withheld. The reasons stay, so the log records what was found.
+            return Verdict(blocked=verdict.blocked, reasons=verdict.reasons,
+                           message=verdict.message, masked_text=None,
+                           failed_closed=verdict.failed_closed, detail="masking not applied: "
+                           "the target answered from its own records for a caller it did "
+                           "not refuse", usage=verdict.usage)
+        return verdict
 
     # --- the one place a Bedrock response becomes a Verdict --------------------
     def _apply(self, source: str, blocks: list[dict], fallback: str) -> Verdict:
@@ -99,8 +175,7 @@ class BedrockGuardrail:
                 content=blocks,
             )
         except Exception as exc:  # noqa: BLE001 — any failure is the same decision
-            # Unreachable, throttled, timed out, bad credentials: all mean the check did
-            # not happen, and an unchecked request is not a safe one.
+            # Unreachable, throttled, timed out, bad credentials: the check did not happen.
             return Verdict(
                 blocked=True,
                 failed_closed=True,
@@ -122,8 +197,7 @@ class BedrockGuardrail:
             return Verdict(blocked=False, usage=response.get("usage") or {})
 
         if action != "GUARDRAIL_INTERVENED":
-            # Includes a missing action. A verdict we cannot read is treated as a block,
-            # because the alternative is passing text nobody judged.
+            # Includes a missing action: the alternative is passing text nobody judged.
             return Verdict(blocked=True, failed_closed=True, reasons=("unrecognised-verdict",),
                            message=fallback, detail=f"action={action!r}")
 
@@ -138,12 +212,9 @@ class BedrockGuardrail:
 
         text = "".join(part.get("text", "") for part in response.get("outputs", []))
         if blocked:
-            # Bedrock returns the configured refusal here, so there is no second copy of
-            # that wording in this repository.
+            # Bedrock returns the configured refusal, so this repository keeps no copy.
             return Verdict(blocked=True, reasons=tuple(reasons), message=text or fallback,
                            usage=response.get("usage") or {})
-        # Intervened without blocking means masked: the text stands, with entities
-        # replaced. Input masking is switched off in the policy, so this cannot arise on
-        # the input side today.
+        # Intervened without blocking means masked: the text stands, entities replaced.
         return Verdict(blocked=False, reasons=tuple(reasons), masked_text=text or None,
                        usage=response.get("usage") or {})

@@ -105,15 +105,8 @@ content_filters:
 # NAME was removed: it masks any person, including "approved by Dr Mehta". The cost is that
 # a patient name with no identifier beside it is no longer caught.
 #
-# ⚠️ Three things B3 must get right when it consumes this:
-#   1. Normalise the answer (strip 【...】, NFKC) before grounding, or the score measures
-#      typography. Without it, correct answers scored as low as 0.19.
-#   2. Split masked from blocked. ANONYMIZE returns action=GUARDRAIL_INTERVENED with the
-#      masked text in outputs[0]; reading `action` alone turns every mask into a refusal.
-#   3. Do not mask identifiers the caller is entitled to. Only the roles allowed claims data
-#      reach the analytical branch, so masking it withholds the answer from the one person
-#      permitted to have it. If the target answered there and did not refuse, its own gate
-#      has already settled entitlement.
+# Masking is skipped for an answer the target drew from its own records: only the roles
+# entitled to that data reach it, and the target's gate ran before this one.
 pii_entities:
   - type: EMAIL
     action: ANONYMIZE

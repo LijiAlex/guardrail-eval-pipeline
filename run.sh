@@ -6,8 +6,8 @@
 # come up in order: the pipeline answers 502 until the target is reachable. Doing that by
 # hand means two terminals and two paths that both contain a space.
 #
-#   ./run.sh              start both
-#   ./run.sh --eval       also ask the target for the passages it retrieved
+#   ./run.sh              start both, with the target exposing what it retrieved
+#   ./run.sh --no-eval    without that, which the output guardrail cannot work from
 #
 # Ctrl-C stops both. The frontend is not started here, because its output is chatty and
 # mixing three logs in one terminal helps nobody; the command for it is printed at the end.
@@ -21,8 +21,12 @@ TARGET_PORT="${MEDIBOT_PORT:-8000}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_HOME="${MEDIBOT_HOME:-$(cd "$HERE/.." && pwd)/Assignment 2 medibot}"
 
-EXPOSE_EVAL=false
-if [ "${1:-}" = "--eval" ]; then EXPOSE_EVAL=true; fi
+# On by default since the output guardrail landed. Grounding scores an answer against the
+# passages behind it, so without them a document answer cannot be checked and is withheld —
+# which makes the old default a mode where every such question is refused. --no-eval is
+# kept for seeing what the target does on its own.
+EXPOSE_EVAL=true
+if [ "${1:-}" = "--no-eval" ]; then EXPOSE_EVAL=false; fi
 
 log() { printf '  %s\n' "$*"; }
 die() { printf '\n  %s\n\n' "$*" >&2; exit 1; }
@@ -87,9 +91,9 @@ wait_for() {
 printf '\n'
 log "target   : $TARGET_HOME"
 if [ "$EXPOSE_EVAL" = true ]; then
-  log "passages : exposed, so the pipeline can see what the target retrieved"
+  log "passages : exposed, so the output guardrail can ground answers against them"
 else
-  log "passages : not exposed (pass --eval to turn them on)"
+  log "passages : NOT exposed — document answers will be withheld, nothing to ground against"
 fi
 printf '\n'
 

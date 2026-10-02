@@ -96,6 +96,9 @@ class GuardrailPolicy:
     input_message: str
     output_message: str
     version: str = "DRAFT"
+    # name -> regex, from the file's `pii_regexes`. The same patterns Bedrock masks with,
+    # reused by the containment check so the two cannot drift apart.
+    identifier_patterns: dict[str, str] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -122,5 +125,10 @@ def load_policy(path: str | Path) -> GuardrailPolicy:
         # DRAFT follows whatever was last applied. A deployment should pin a published
         # version so editing the policy cannot change a running system by surprise.
         version=str(data.get("version", "DRAFT")),
+        identifier_patterns={
+            entry["name"]: entry["pattern"]
+            for entry in data.get("pii_regexes") or []
+            if entry.get("name") and entry.get("pattern")
+        },
         raw=data,
     )
