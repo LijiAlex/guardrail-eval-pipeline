@@ -605,6 +605,76 @@ reports latency and tokens as unavailable rather than as zero. That was verified
 way: an early run had no API key, every span upload failed with 401, and both requests still
 returned 200. Observability going down does not take the service with it.
 
+## The event log
+
+Spans and events answer different questions, and only one of them is optional. A span shows
+where a request spent its time and nests one process inside another. An event is the
+durable record that a particular question was blocked, by which policy, under which
+guardrail version — and tracing can be switched off, so a verdict that existed only as a
+span would vanish with it. The verdict is the safety record.
+
+One JSON line per request under `logs/<target>/events.jsonl`:
+
+```json
+{"at": "2026-10-02T05:33:11Z", "request_id": "4202fd4d…", "target": "medibot",
+ "decision": "blocked", "blocked_at": "input", "reasons": ["Off-Topic Requests"],
+ "failed_closed": false, "question": "Tell me a joke.",
+ "answer": "I can't help with that request — …",
+ "guardrail": {"id": "88d4lvtw4xdw", "version": "DRAFT"},
+ "trace_id": "01a0fb1a-2a0c-7710-b308-db47ed875c33"}
+```
+
+That is the spec's own test for this component: one logged request explained — what it saw,
+what it decided, and why — without re-running it. The `guardrail` version is there because
+a verdict is not interpretable without the configuration that produced it, and that
+configuration changes. The `trace_id` joins the line to its span, which is where latency and
+token usage live.
+
+**The reason is logged and never shown.** Spec l.48 is two requirements: one test asserts
+the policy names never reach the caller, another asserts they do reach the log. The second
+is what makes the first affordable.
+
+**What is never written:** `response.raw`, the target's whole untouched body, which after A1
+carries every retrieved passage in full. An audit log holding that would be a second copy of
+what the guardrails exist to contain. A test pins it, and was checked by making the leak on
+purpose.
+
+### Metrics
+
+```bash
+python scripts/metrics.py --target medibot
+```
+
+```
+4 requests  (2026-10-02T05:33:10 .. 2026-10-02T05:33:16)
+
+  allowed             1   25.0%
+  masked              0    0.0%
+  target_refused      1   25.0%
+  blocked             2   50.0%
+
+blocked at: input 2
+
+policies that fired
+  Off-Topic Requests           1
+  PROMPT_ATTACK                1
+```
+
+**Four outcomes, not two.** A target refusing on its own terms is it working correctly;
+folding that into "blocked" would report correct behaviour as an attack, and the evaluation
+report is built from these counts. Failing closed is counted apart from blocking for the
+same reason — both stop a request, only one says anything about the text.
+
+Structured, queryable, no dashboard required:
+
+```bash
+jq -r 'select(.decision=="blocked") | "\(.blocked_at)  \(.reasons|join(","))  \(.question)"' \
+  logs/medibot/events.jsonl
+```
+
+Writing the log never fails a request. A guardrail that stops answering because its disk
+filled has turned an observability problem into an outage.
+
 ## What the layer actually changes
 
 The same ten questions asked twice — once straight at the target on `:8000`, once through

@@ -16,6 +16,13 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def events_go_to_a_temporary_directory(tmp_path, monkeypatch):
+    """Events are written on every request, so without this the suite appends thousands of
+    lines to the real log and a later metrics check counts tests as traffic."""
+    monkeypatch.setenv("GEP_LOG_DIR", str(tmp_path / "logs"))
+
+
+@pytest.fixture(autouse=True)
 def no_tracing(monkeypatch):
     """Spans stay local. With an API key present the suite would otherwise ship hundreds
     of test traces into the real project."""

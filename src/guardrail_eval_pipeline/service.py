@@ -7,6 +7,10 @@ No timing is taken here. Latency and token usage come from the trace, per stage 
 than as one number, and are reported unavailable when tracing is off rather than
 fabricated as zero.
 
+Every request also leaves one structured event, whether or not anything is tracing: the
+span says where the time went, the event is the durable record of what was decided. See
+`events.py`.
+
 The whole request is one span, and the target's own spans nest inside it: `ask` is handed
 this span's context, which the target adopts as its parent. Without that the two processes
 produce two unrelated traces and nobody can see a retrieval and the guardrail decision
@@ -17,10 +21,13 @@ The input guardrail runs here. The output one arrives in B3; its seam is marked 
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, replace
 from typing import Protocol
 
 from langsmith import get_current_run_tree, traceable
+
+from guardrail_eval_pipeline import events
 
 from guardrail_eval_pipeline.contracts import Target, TargetResponse, Verdict
 
@@ -68,6 +75,43 @@ def _trace_headers() -> dict[str, str] | None:
     return run.to_headers() if run is not None else None
 
 
+def _emit(result: Guarded, *, target_name: str, request_id: str, question: str,
+          guardrail: dict[str, str], blocked_at: str | None) -> None:
+    """Write the durable record of this request.
+
+    The question and answer are kept because the spec's test is that one logged request can
+    be explained without re-running it, and "a request was blocked" explains nothing.
+
+    The answer stored is the one the caller received, which when masking fired is the
+    masked text — `handle` has already replaced it by this point. What must never be logged
+    is `response.raw`: it is the target's whole untouched body, which after A1 carries every
+    retrieved passage in full, and an audit log holding that is a second copy of the thing
+    the guardrails exist to contain.
+    """
+    verdict = result.verdict
+    masked = verdict.masked_text if verdict else None
+    decision = ("blocked" if result.blocked
+                else "masked" if masked is not None
+                else "target_refused" if result.response.refused
+                else "allowed")
+    run = get_current_run_tree()
+    events.write(events.Event(
+        request_id=request_id,
+        target=target_name,
+        decision=decision,
+        blocked_at=blocked_at,
+        reasons=list(verdict.reasons) if verdict else [],
+        failed_closed=bool(verdict and verdict.failed_closed),
+        principal=result.principal,
+        question=question,
+        answer=result.response.answer,
+        guardrail=guardrail,
+        usage=dict(verdict.usage) if verdict else {},
+        trace_id=str(run.trace_id) if run is not None else None,
+        detail=verdict.detail if verdict else None,
+    ))
+
+
 def _record(result: Guarded) -> None:
     """Put the verdict on the span, so traces can be filtered by what was decided.
 
@@ -112,6 +156,14 @@ def handle(
     works; `/health` reports which of the two is running, because an unguarded pipeline
     otherwise looks exactly like a guarded one.
     """
+    log = {
+        "target_name": getattr(target, "name", None) or "unknown",
+        "request_id": str(uuid.uuid4()),
+        "question": question,
+        "guardrail": {"id": getattr(guardrails, "identifier", ""),
+                      "version": getattr(guardrails, "version", "")},
+    }
+
     verdict = guardrails.check_input(question) if guardrails is not None else None
 
     if verdict is not None and verdict.blocked:
@@ -125,6 +177,7 @@ def handle(
             verdict=verdict,
         )
         _record(blocked)
+        _emit(blocked, blocked_at="input", **log)
         return blocked
 
     response = target.ask(question, principal=principal, token=token,
@@ -133,6 +186,7 @@ def handle(
     if guardrails is None:
         unguarded = Guarded(response=response, verdict=verdict)
         _record(unguarded)
+        _emit(unguarded, blocked_at=None, **log)
         return unguarded
 
     # The principal comes back with the response, so the scope check runs against the
@@ -149,12 +203,14 @@ def handle(
             verdict=out,
         )
         _record(withheld)
+        _emit(withheld, blocked_at="output", **log)
         return withheld
     if out.masked_text is not None:
         # Masked, not blocked: the answer stands with entities replaced, metadata intact.
         response = replace(response, answer=out.masked_text)
     allowed = Guarded(response=response, verdict=out)
     _record(allowed)
+    _emit(allowed, blocked_at=None, **log)
     return allowed
 
 
