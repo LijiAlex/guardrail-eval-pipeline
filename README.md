@@ -708,6 +708,53 @@ is ours to genericise.
 indirect escalation. Both are refused by the target anyway, which is the point — the
 guardrail is the second layer, not the only one.
 
+## The evaluation set
+
+`evaluation/medibot.yaml` — 20 labelled cases and 3 judge probes. It lives here rather than
+in the target's repository, because ground truth beside the system under test is that
+system writing its own exam.
+
+**Every expected answer was written from the target's source documents**, not from its
+output. Labels copied from a system make it score well by construction, which is the
+failure a dataset is supposed to prevent. `scripts/verify_labels.py` checks each one: every
+fact fragment must appear in the document its case names, and all 12 across 9 cases do.
+That catches a fact written from memory and a fact attributed to the wrong document.
+
+**Three behaviours, not one.** A set of only answerable questions measures half a system:
+
+| expected | cases | |
+|---|---|---|
+| `answered` | 14 | including two the target answers from records, where the context metrics are *unavailable* rather than zero |
+| `target_refused` | 3 | refusing is the correct behaviour — an accuracy-only judge scores a correct refusal zero |
+| `blocked` | 3 | the guardrail stops these before the target sees them |
+
+**The sharpest case is a pair.** `mri-code` and `nurse-asks-billing` are word for word the
+same question under two roles, which isolates the access decision from the phrasing.
+Verified live:
+
+```
+billing_executive  refusal=None   sources=3   The billing code for an MRI brain (plain) is PROC-RAD-01
+nurse              refusal=role   sources=0   This looks like a question for billing documents, which a nurse…
+```
+
+**Three cases are hard on purpose.** The spec warns that faithfulness and relevancy look
+fine on easy questions. The hand-hygiene case is the clearest: the target answers it by
+citing the WHO "Five Moments of Hand Hygiene", a phrase in none of the retrieved passages —
+a correct-sounding answer that is not supported by its sources, and the one the grounding
+check already catches. The F-05 case names the wrong device on purpose, to see whether the
+answer accepts the premise.
+
+**Probes test the judge, not the system.** Three fixed answers that never reach the target:
+a confidently wrong dosage, a right answer with an invented citation, and a correct refusal.
+A judge only ever shown real answers has not been tested — the failure mode is agreeing with
+anything that sounds confident, and the third probe catches the opposite error of marking
+down a system for correctly refusing.
+
+Loading validates: a duplicate id (one result would overwrite another while the count still
+looked right), an `answered` case with no expected answer (unmarkable, and it would pass
+every metric silently), an unknown behaviour, or a set that has shrunk below the spec's
+floor of 15.
+
 ## Wiring up a different system
 
 The pipeline is not MediBot-specific. Supporting another chatbot means two files and one
