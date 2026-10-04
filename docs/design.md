@@ -589,17 +589,35 @@ never ran.
 
 ### Which models, and why
 
-| role | model |
-|---|---|
-| target | `openai/gpt-oss-120b` |
-| judge | `qwen/qwen3.8-27b` |
-| RAGAS evaluator | `qwen/qwen3.8-27b` |
-| RAGAS embeddings | Bedrock `cohere.embed-english-v3` |
+| role | model | provider |
+|---|---|---|
+| target | `openai/gpt-oss-120b` | Groq |
+| judge | `qwen/qwen3.8-27b` | Groq |
+| RAGAS evaluator | `gpt-4.1-mini`, falling back to `qwen/qwen3.8-27b` | OpenAI, else Groq |
+| RAGAS embeddings | `cohere.embed-english-v3` | Bedrock |
 
 A system grading its own output shares its blind spots: the phrasing it finds natural is the
 phrasing it rates highly, and a confident mistake reads as confident to itself. The judge is
-therefore a different model family from a different company than the target. The embeddings
-come from Bedrock and spend no provider quota.
+therefore a different model family from a different company than the target.
+
+**The evaluator moved off Groq; the judge did not.** Groq's free tier caps this account at
+200,000 tokens per day, and one full evaluation spends most of it. Runs were ending with
+scores missing — and missing in a biased way, because the set is scored in order, so the
+cases that dropped out were the longest ones at the end. An aggregate over what survived
+flatters the system, which is worse than reporting no aggregate at all. OpenAI removes the
+daily cap, the per-request pacing, and the `n > 1` restriction that otherwise forces
+`answer_relevancy`'s strictness through a workaround.
+
+The judge stays on qwen deliberately. Grading an OpenAI model with another OpenAI model is
+a weaker separation than a different family from a different company, and the judge's
+independence is what its scores rest on. Where `OPENAI_API_KEY` is unset the evaluator falls
+back to qwen and then shares a model with the judge, which is weaker still — the report's
+provenance records which one ran.
+
+Embeddings stay on Bedrock whichever evaluator is used. The similarity scale is measured and
+healthy — 0.977 for a close paraphrase, 0.126 for an unrelated question — so changing the
+embedder would move every `answer_relevancy` score and invalidate the comparisons recorded
+in `measurements/`.
 
 ### Three of the four RAGAS metrics need passages
 

@@ -30,18 +30,29 @@ from dataclasses import dataclass, field
 # Only cases that produced an answer AND the passages behind it can be scored.
 METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall")
 
+# The RAGAS evaluator runs on OpenAI when OPENAI_API_KEY is set, and falls back to Groq
+# otherwise. Groq's free tier caps this organisation at 200,000 tokens per DAY and a single
+# full evaluation spends most of it, so runs were ending with scores missing — and missing
+# in a biased way, because the set is scored in order and the long cases are at the end.
+#
+# The JUDGE deliberately does not follow it there. The target answers on
+# `openai/gpt-oss-120b`, so grading with another OpenAI model is weaker separation than a
+# different family from a different company. See judge.py.
 EVALUATOR_MODEL = "qwen/qwen3.8-27b"
+OPENAI_EVALUATOR_MODEL = "gpt-4.1-mini"
 EMBEDDING_MODEL = "cohere.embed-english-v3"
 # Bounded so that `strictness` calls for one case still fit inside the provider's
 # per-minute output cap, which is what a declared-but-unbounded request blows through.
 EVALUATOR_MAX_TOKENS = 400
-# RAGAS' default is 3. Measured at both on six cases spanning the observed range: the
-# mean moves 0.681 -> 0.647, five of six cases by less than 0.013, and the verdict is
-# unchanged. One is used because it costs a third of the wall clock on a provider that
-# caps output tokens per minute, and the numbers in docs/report.md were produced with it.
-# The default scores this system slightly LOWER, so this is not the flattering choice
-# being hidden — docs/measurements/strictness.json has every figure.
-ANSWER_RELEVANCY_STRICTNESS = 1
+# RAGAS' default, and what the metric's conventional reading assumes. It ran at 1 while the
+# evaluator was rate-limited hard enough that three generations per case cost an extra half
+# hour; on OpenAI that constraint is gone, so the metric runs as designed.
+#
+# Measured at both on Groq, six cases spanning the observed range: the mean moves
+# 0.681 -> 0.647, five of six by less than 0.013. The default scores this system slightly
+# LOWER, so this is not the flattering setting — docs/measurements/strictness.json has
+# every figure.
+ANSWER_RELEVANCY_STRICTNESS = 3
 EMBEDDING_REGION = "ap-south-1"
 
 
@@ -81,8 +92,8 @@ def _evaluator():
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.llms import LangchainLLMWrapper
 
-    if not os.environ.get("GROQ_API_KEY"):
-        raise RuntimeError("GROQ_API_KEY is not set; RAGAS cannot run")
+    if not (os.environ.get("OPENAI_API_KEY") or os.environ.get("GROQ_API_KEY")):
+        raise RuntimeError("neither OPENAI_API_KEY nor GROQ_API_KEY is set; RAGAS cannot run")
     # Temperature zero: the spec asks that running twice against an unchanged system give
     # consistent results, and these metrics are themselves model calls.
     #
@@ -99,23 +110,38 @@ def _evaluator():
     # 700-token bound stays inside a 1000 output-tokens-per-minute cap. Scoring is slow
     # as a result, which is the right trade: an incomplete metric is worth less than a
     # complete one that took half an hour.
-    llm = ChatGroq(
-        model=EVALUATOR_MODEL,
-        temperature=0,
-        timeout=120,
-        max_retries=5,
-        max_tokens=EVALUATOR_MAX_TOKENS,
-        rate_limiter=InMemoryRateLimiter(
-            requests_per_second=1 / 30,
-            check_every_n_seconds=1,
-            max_bucket_size=1,
-        ),
-    )
+    if os.environ.get("OPENAI_API_KEY"):
+        from langchain_openai import ChatOpenAI
+
+        # No daily cap and rate limits high enough that the pacing above is unnecessary,
+        # so the run finishes in minutes rather than the better part of an hour. `n>1` is
+        # supported, so `strictness` needs no `bypass_n` workaround.
+        llm = ChatOpenAI(model=OPENAI_EVALUATOR_MODEL, temperature=0, timeout=120,
+                         max_retries=5)
+        wrapped = LangchainLLMWrapper(llm)
+    else:
+        llm = ChatGroq(
+            model=EVALUATOR_MODEL,
+            temperature=0,
+            timeout=120,
+            max_retries=5,
+            max_tokens=EVALUATOR_MAX_TOKENS,
+            rate_limiter=InMemoryRateLimiter(
+                requests_per_second=1 / 30,
+                check_every_n_seconds=1,
+                max_bucket_size=1,
+            ),
+        )
+        # `bypass_n`: send the prompt n times rather than asking for n completions,
+        # which this provider refuses with `400 'n' : number must be at most 1`.
+        wrapped = LangchainLLMWrapper(llm, bypass_n=True)
+
+    # Embeddings stay on Bedrock whichever LLM is used. The scale is measured and healthy
+    # (0.977 for a close paraphrase, 0.126 for an unrelated question), and changing the
+    # embedder would move every answer_relevancy score and invalidate the comparisons in
+    # docs/measurements/.
     embeddings = BedrockEmbeddings(model_id=EMBEDDING_MODEL, region_name=EMBEDDING_REGION)
-    # `bypass_n`: send the prompt n times rather than asking for n completions,
-    # which this provider refuses.
-    return (LangchainLLMWrapper(llm, bypass_n=True),
-            LangchainEmbeddingsWrapper(embeddings))
+    return wrapped, LangchainEmbeddingsWrapper(embeddings)
 
 
 def score(outcomes) -> list[Scored]:

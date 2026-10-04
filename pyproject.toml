@@ -24,6 +24,10 @@ evaluation = [
     "ragas==0.4.3",
     "langchain-groq==1.1.3",
     "langchain-aws==1.7.9",   # 1.8.0 was a day old
+    # The RAGAS evaluator when OPENAI_API_KEY is set; Groq is the fallback. Declared rather
+    # than relied on transitively, because a resolution that dropped it would break scoring
+    # only at run time. 1.6.7 is four days old, inside the cooldown.
+    "langchain-openai==1.6.6",
     # ragas 0.4.3 (the current release) still imports
     # langchain_community.chat_models.vertexai, which 0.4.x moved. Held on the line that
     # has it; without this, importing ragas at all raises ModuleNotFoundError.

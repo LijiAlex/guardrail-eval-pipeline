@@ -275,7 +275,8 @@ rather than faked.
 | key | needed for |
 |---|---|
 | AWS credentials (the usual chain) | the guardrails |
-| `GROQ_API_KEY` | the LLM judge and the RAGAS evaluator |
+| `GROQ_API_KEY` | the LLM judge, and the RAGAS evaluator when `OPENAI_API_KEY` is unset |
+| `OPENAI_API_KEY` | the RAGAS evaluator. Optional — without it RAGAS falls back to Groq, whose free tier caps this account at 200,000 tokens a day, which one full run very nearly spends |
 | `LANGSMITH_API_KEY` + `LANGSMITH_TRACING=true` | tracing |
 
 `LANGSMITH_PROJECT` is deliberately not set: it is derived from the target, so both
@@ -379,28 +380,23 @@ Failed thresholds:
 
 - **heuristics_pass_rate** 0.98 below 1.00
 
-Not judged. A metric that could not run is not a metric that failed, and one scored on fewer than 50% of its eligible cases is an anecdote rather than a result:
-
-- judge_mean
-- probes_caught
-
 ## Signals
 
 | signal | value | must clear | basis | status | coverage |
 |---|---|---|---|---|---|
 | heuristics_pass_rate | 0.980 | 1.00 | fixed | FAIL | 96/98 applicable checks |
-| faithfulness | 0.917 | 0.80 | fixed | pass | 6/11 eligible cases scored — incomplete |
-| answer_relevancy | 0.718 | 0.70 | fixed | pass | 10/11 eligible cases scored — incomplete |
-| context_precision | 1.000 | 0.70 | fixed | pass | 8/11 eligible cases scored — incomplete |
-| context_recall | 1.000 | 0.70 | fixed | pass | 8/11 eligible cases scored — incomplete |
-| judge_mean | 1.000 | 0.70 | fixed | insufficient | 2/15 gradable cases graded — incomplete |
-| probes_caught | — | 1.00 | fixed | unavailable | 0 probes |
+| faithfulness | 0.950 | 0.90 | baseline 0.950 − 0.05 | pass | 11/11 eligible cases scored |
+| answer_relevancy | 0.704 | 0.65 | baseline 0.704 − 0.05 | pass | 11/11 eligible cases scored |
+| context_precision | 0.985 | 0.94 | baseline 0.985 − 0.05 | pass | 11/11 eligible cases scored |
+| context_recall | 1.000 | 0.95 | baseline 1.000 − 0.05 | pass | 11/11 eligible cases scored |
+| judge_mean | 0.967 | 0.92 | baseline 0.967 − 0.05 | pass | 15/15 gradable cases graded |
+| probes_caught | 1.000 | 1.00 | fixed | pass | 3 probes |
 
 **Where the lines come from.** The deterministic signals are judged against a fixed bar: every heuristic must pass, and every probe must be caught.
 
 The model-scored metrics are meant to be judged against the figure they last recorded, less 0.05. Their absolute level says as much about the metric as about the system — `answer_relevancy` reads about 0.70 for answers the judge grades 0.89, and the same answer has scored 0.726 and 0.930 on two draws — so a fixed line near that mean fires on sampling noise, while a drop from the last recorded figure does not.
 
-**No baseline has been recorded yet**, so every line below is still the fixed one, including the marginal `answer_relevancy` bar this is meant to replace. Record one from a run with full coverage: `scripts/evaluate.py --reuse runs/latest.json --set-baseline`.
+5 of them have a recorded figure to measure against; the rest fall back on the fixed line until one is recorded. Baselines live in `docs/measurements/baseline.json` and move only when `scripts/evaluate.py --set-baseline` is run.
 
 <!-- report:end -->
 
