@@ -265,6 +265,10 @@ def build(run, dataset) -> str:
     from guardrail_eval_pipeline import judge as judge_module
     from guardrail_eval_pipeline import ragas_metrics
 
+    # What actually produced these scores, stamped when they were produced. Falling back on
+    # the current environment is only right for a run that predates the stamp.
+    evaluator = getattr(run, "evaluator", None) or ragas_metrics.active_evaluator()
+
     policy = {(row.get("guardrail") or {}).get("version") for row in events.read(run.target)}
     answered = sum(1 for c in run.cases if c.expected == "answered")
     refused = sum(1 for c in run.cases if c.expected == "target_refused")
@@ -496,17 +500,17 @@ def build(run, dataset) -> str:
               f"| guardrail versions in the event log | {', '.join(sorted(v or '?' for v in policy)) or '—'} |",
               "| evaluation set | `evaluation/" + f"{run.target}.yaml` |",
               f"| judge | `{judge_module.JUDGE_MODEL}` |",
-              f"| RAGAS evaluator | `{ragas_metrics.EVALUATOR_MODEL}`, "
-              f"`answer_relevancy.strictness={ragas_metrics.ANSWER_RELEVANCY_STRICTNESS}` "
-              f"(RAGAS' default is 3; see docs/measurements/strictness.json), "
-              f"`max_tokens={ragas_metrics.EVALUATOR_MAX_TOKENS}` |",
+              f"| RAGAS evaluator | `{evaluator['model']}` on {evaluator['provider']}, "
+              f"`{evaluator['settings']}` |",
               f"| RAGAS embeddings | `{ragas_metrics.EMBEDDING_MODEL}` |",
               "| saved answers | `runs/latest.json` |",
               "| raw measurements | `docs/measurements/` |",
               "",
-              "Thresholds are fixed in `report.py` and were chosen before these numbers "
-              "were seen. Heuristics must all pass because a deterministic failure is a "
-              "defect rather than a bad draw.", ""]
+              "The deterministic signals are judged against fixed bars chosen before any "
+              "of these numbers were seen, and every heuristic must pass because a "
+              "deterministic failure is a defect rather than a bad draw. The model-scored "
+              "metrics are judged against their own last recorded figures; see Signals "
+              "above for which line applied to each.", ""]
     return "\n".join(lines)
 
 

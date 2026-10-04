@@ -84,6 +84,21 @@ def eligible(outcome) -> str | None:
     return None
 
 
+def active_evaluator() -> dict[str, str]:
+    """Which evaluator this environment will use, for the report's provenance.
+
+    Read from the environment rather than from a constant: the module holds a model name
+    for each provider, and naming the wrong one makes a report claim scores came from a
+    model that never saw them.
+    """
+    if os.environ.get("OPENAI_API_KEY"):
+        return {"provider": "OpenAI", "model": OPENAI_EVALUATOR_MODEL,
+                "settings": f"answer_relevancy.strictness={ANSWER_RELEVANCY_STRICTNESS}"}
+    return {"provider": "Groq", "model": EVALUATOR_MODEL,
+            "settings": (f"answer_relevancy.strictness={ANSWER_RELEVANCY_STRICTNESS}, "
+                         f"max_tokens={EVALUATOR_MAX_TOKENS}, bypass_n, paced 1 req/30s")}
+
+
 def _evaluator():
     """The LLM and embeddings RAGAS will use, wrapped for its interface."""
     from langchain_aws import BedrockEmbeddings

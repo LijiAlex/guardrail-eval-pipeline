@@ -58,7 +58,7 @@
         }
       ],
       "ragas": {
-        "faithfulness": 0.5,
+        "faithfulness": 1.0,
         "answer_relevancy": 0.7363062438846111,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
@@ -132,7 +132,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.5758404772930027,
+        "answer_relevancy": 0.5766943853434481,
         "context_precision": 0.8333333332916666,
         "context_recall": 1.0
       },
@@ -205,7 +205,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.7092495438008605,
+        "answer_relevancy": 0.7108653807245803,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -278,7 +278,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.6760568866671489,
+        "answer_relevancy": 0.6713365207873633,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -351,7 +351,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.7447959469119759,
+        "answer_relevancy": 0.7451108314507192,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -482,7 +482,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.8036008888219692,
+        "answer_relevancy": 0.800657997326903,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -555,7 +555,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.8224599588245373,
+        "answer_relevancy": 0.8218056021411021,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -628,7 +628,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.7339189802079827,
+        "answer_relevancy": 0.7340655508014692,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -701,7 +701,7 @@
       ],
       "ragas": {
         "faithfulness": 0.9545454545454546,
-        "answer_relevancy": 0.7434902491337909,
+        "answer_relevancy": 0.7890656406536297,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -774,7 +774,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.6695053292636901,
+        "answer_relevancy": 0.6695272066930581,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -849,7 +849,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.5255514127007802,
+        "answer_relevancy": 0.5216096986139837,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -1489,8 +1489,8 @@
     }
   ],
   "ragas_aggregate": {
-    "faithfulness": 0.9504132231404959,
-    "answer_relevancy": 0.70370690159185,
+    "faithfulness": 0.9958677685950413,
+    "answer_relevancy": 0.7070040962200789,
     "context_precision": 0.9848484847537878,
     "context_recall": 1.0
   },
@@ -1512,5 +1512,10 @@
       11
     ]
   },
-  "notes": []
+  "notes": [],
+  "evaluator": {
+    "provider": "OpenAI",
+    "model": "gpt-4.1-mini",
+    "settings": "answer_relevancy.strictness=3"
+  }
 }

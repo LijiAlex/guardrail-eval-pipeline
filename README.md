@@ -385,8 +385,8 @@ Failed thresholds:
 | signal | value | must clear | basis | status | coverage |
 |---|---|---|---|---|---|
 | heuristics_pass_rate | 0.980 | 1.00 | fixed | FAIL | 96/98 applicable checks |
-| faithfulness | 0.950 | 0.90 | baseline 0.950 − 0.05 | pass | 11/11 eligible cases scored |
-| answer_relevancy | 0.704 | 0.65 | baseline 0.704 − 0.05 | pass | 11/11 eligible cases scored |
+| faithfulness | 0.996 | 0.90 | baseline 0.950 − 0.05 | pass | 11/11 eligible cases scored |
+| answer_relevancy | 0.707 | 0.65 | baseline 0.704 − 0.05 | pass | 11/11 eligible cases scored |
 | context_precision | 0.985 | 0.94 | baseline 0.985 − 0.05 | pass | 11/11 eligible cases scored |
 | context_recall | 1.000 | 0.95 | baseline 1.000 − 0.05 | pass | 11/11 eligible cases scored |
 | judge_mean | 0.967 | 0.92 | baseline 0.967 − 0.05 | pass | 15/15 gradable cases graded |

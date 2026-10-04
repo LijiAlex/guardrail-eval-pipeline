@@ -54,6 +54,9 @@ class Run:
     ragas_aggregate: dict[str, float | None] = field(default_factory=dict)
     ragas_coverage: dict[str, list[int]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    # Stamped when RAGAS runs. A report rebuilt later reads this rather than the current
+    # environment, so it cannot attribute scores to a model that never saw them.
+    evaluator: dict[str, str] = field(default_factory=dict)
 
 
 def _answer(case, target, guardrail) -> tuple[heuristics.Outcome, str | None]:
@@ -158,6 +161,7 @@ def add_ragas(dataset: Dataset, run: Run) -> None:
                         else {k: v for k, v in score.scores.items()})
     run.ragas_aggregate = ragas_metrics.aggregate(scored)
     run.ragas_coverage = {k: list(v) for k, v in ragas_metrics.coverage(scored).items()}
+    run.evaluator = ragas_metrics.active_evaluator()
 
 
 def add_judge(dataset: Dataset, run: Run, *, pace_s: float = 0.0) -> None:
@@ -227,7 +231,8 @@ def load_run(path: Path) -> Run:
     data = json.loads(Path(path).read_text())
     run = Run(target=data["target"], ragas_aggregate=data.get("ragas_aggregate", {}),
               ragas_coverage=data.get("ragas_coverage", {}),
-              notes=data.get("notes", []), probes=data.get("probes", []))
+              notes=data.get("notes", []), probes=data.get("probes", []),
+              evaluator=data.get("evaluator", {}))
     run.cases = [CaseResult(**case) for case in data["cases"]]
     return run
 

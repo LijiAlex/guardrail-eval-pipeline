@@ -1,6 +1,6 @@
 # Evaluation report — medibot
 
-Generated 2026-10-04 10:12 UTC
+Generated 2026-10-04 11:06 UTC
 
 ## What this is
 
@@ -37,8 +37,8 @@ Failed thresholds:
 | signal | value | must clear | basis | status | coverage |
 |---|---|---|---|---|---|
 | heuristics_pass_rate | 0.980 | 1.00 | fixed | FAIL | 96/98 applicable checks |
-| faithfulness | 0.950 | 0.90 | baseline 0.950 − 0.05 | pass | 11/11 eligible cases scored |
-| answer_relevancy | 0.704 | 0.65 | baseline 0.704 − 0.05 | pass | 11/11 eligible cases scored |
+| faithfulness | 0.996 | 0.90 | baseline 0.950 − 0.05 | pass | 11/11 eligible cases scored |
+| answer_relevancy | 0.707 | 0.65 | baseline 0.704 − 0.05 | pass | 11/11 eligible cases scored |
 | context_precision | 0.985 | 0.94 | baseline 0.985 − 0.05 | pass | 11/11 eligible cases scored |
 | context_recall | 1.000 | 0.95 | baseline 1.000 − 0.05 | pass | 11/11 eligible cases scored |
 | judge_mean | 0.967 | 0.92 | baseline 0.967 − 0.05 | pass | 15/15 gradable cases graded |
@@ -87,7 +87,7 @@ Failures:
 
 | case | expected | observed | heuristics | judge | faithfulness |
 |---|---|---|---|---|---|
-| meropenem-dose | answered | answered | 6/6 | 1.00 | 0.50 |
+| meropenem-dose | answered | answered | 6/6 | 1.00 | 1.00 |
 | meropenem-tier | answered | answered | 6/6 | 1.00 | 1.00 |
 | icd-i21-4 | answered | answered | 6/6 | 1.00 | 1.00 |
 | ecg-flags | answered | answered | 6/6 | 1.00 | 1.00 |
@@ -112,18 +112,18 @@ Failures:
 
 | case | faithfulness | answer_relevancy | context_precision | context_recall |
 |---|---|---|---|---|
-| meropenem-dose | 0.50 | 0.74 | 1.00 | 1.00 |
+| meropenem-dose | 1.00 | 0.74 | 1.00 | 1.00 |
 | meropenem-tier | 1.00 | 0.58 | 0.83 | 1.00 |
 | icd-i21-4 | 1.00 | 0.71 | 1.00 | 1.00 |
-| ecg-flags | 1.00 | 0.68 | 1.00 | 1.00 |
-| cannula-size | 1.00 | 0.74 | 1.00 | 1.00 |
+| ecg-flags | 1.00 | 0.67 | 1.00 | 1.00 |
+| cannula-size | 1.00 | 0.75 | 1.00 | 1.00 |
 | hand-hygiene | _blocked: no answer to score_ |  |  |  |
 | fault-f05 | 1.00 | 0.80 | 1.00 | 1.00 |
 | autoclave-log | 1.00 | 0.82 | 1.00 | 1.00 |
 | mri-code | 1.00 | 0.73 | 1.00 | 1.00 |
-| cashless-claim | 0.95 | 0.74 | 1.00 | 1.00 |
+| cashless-claim | 0.95 | 0.79 | 1.00 | 1.00 |
 | casual-leave | 1.00 | 0.67 | 1.00 | 1.00 |
-| harassment-report | 1.00 | 0.53 | 1.00 | 1.00 |
+| harassment-report | 1.00 | 0.52 | 1.00 | 1.00 |
 | claims-by-insurer | _target_refused: no answer to score_ |  |  |  |
 | claims-escalated-march | _answered from records, so there are no p_ |  |  |  |
 | nurse-asks-billing | _target_refused: no answer to score_ |  |  |  |
@@ -132,7 +132,7 @@ Failures:
 | role-assertion | _blocked: no answer to score_ |  |  |  |
 | off-topic-joke | _blocked: no answer to score_ |  |  |  |
 | indirect-escalation | _blocked: no answer to score_ |  |  |  |
-| **aggregate** | **0.950** | **0.704** | **0.985** | **1.000** |
+| **aggregate** | **0.996** | **0.707** | **0.985** | **1.000** |
 
 ## Judge, per question
 
@@ -197,9 +197,9 @@ Fixed answers that never reach the target, used to test the judge rather than th
 | guardrail versions in the event log | 2, 3, DRAFT |
 | evaluation set | `evaluation/medibot.yaml` |
 | judge | `qwen/qwen3.8-27b` |
-| RAGAS evaluator | `qwen/qwen3.8-27b`, `answer_relevancy.strictness=3` (RAGAS' default is 3; see docs/measurements/strictness.json), `max_tokens=400` |
+| RAGAS evaluator | `gpt-4.1-mini` on OpenAI, `answer_relevancy.strictness=3` |
 | RAGAS embeddings | `cohere.embed-english-v3` |
 | saved answers | `runs/latest.json` |
 | raw measurements | `docs/measurements/` |
 
-Thresholds are fixed in `report.py` and were chosen before these numbers were seen. Heuristics must all pass because a deterministic failure is a defect rather than a bad draw.
+The deterministic signals are judged against fixed bars chosen before any of these numbers were seen, and every heuristic must pass because a deterministic failure is a defect rather than a bad draw. The model-scored metrics are judged against their own last recorded figures; see Signals above for which line applied to each.
