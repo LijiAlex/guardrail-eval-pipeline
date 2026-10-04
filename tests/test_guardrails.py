@@ -289,3 +289,91 @@ def test_a_target_refusal_keeps_its_own_message():
     assert result.blocked is False
     assert result.response.refused is True
     assert result.response.answer != REFUSAL_OUT
+
+
+# --- showing a masked value the caller's own passages already carry ------------
+#
+# Bedrock masks every contact detail, including an insurer helpline printed in a document
+# this caller just retrieved, because it never sees the corpus. These pin the rule that
+# decides when the pipeline may show one back, and the rule's two safe directions.
+
+BILLING = Retrieved(text="Bupa — TPA / Contact = In-house · 1800‑425‑2255.",
+                    scope="billing", label="billing_codes.pdf / Insurer panel")
+
+PII_MASKED = {
+    "action": "GUARDRAIL_INTERVENED",
+    "actionReason": "Guardrail masked.",
+    "outputs": [{"text": "Bupa helpline is {PHONE}."}],
+    "assessments": [{"sensitiveInformationPolicy": {"piiEntities": [
+        {"match": "1800-425-2255", "type": "PHONE", "action": "ANONYMIZED"}]}}],
+}
+
+
+def billing_answer(**kwargs) -> TargetResponse:
+    base = TargetResponse(answer="Bupa helpline is 1800-425-2255.", contexts=[BILLING],
+                          citations=["billing_codes.pdf"], principal="billing_executive",
+                          grounded=True)
+    return replace(base, **kwargs)
+
+
+def restoring_guard(response, restorable=frozenset({"PHONE"})) -> BedrockGuardrail:
+    return BedrockGuardrail(identifier="gr-1", version="DRAFT", client=FakeClient(response),
+                            input_message=REFUSAL_IN, output_message=REFUSAL_OUT,
+                            identifier_patterns=PATTERNS, restorable=restorable)
+
+
+def test_a_masked_value_is_shown_when_the_callers_own_passage_carries_it():
+    verdict = restoring_guard(PII_MASKED).check_output(
+        billing_answer(), question="What is the Bupa helpline?")
+    assert verdict.masked_text == "Bupa helpline is 1800-425-2255."
+    assert verdict.restored == ("PHONE",)
+
+
+def test_the_log_keeps_the_masked_text_when_a_value_was_shown():
+    """An audit trail proves redaction happened; it must not hold what was redacted."""
+    verdict = restoring_guard(PII_MASKED).check_output(billing_answer(), question="q")
+    assert verdict.redacted_text == "Bupa helpline is {PHONE}."
+    assert "1800-425-2255" not in verdict.redacted_text
+
+
+def test_a_value_in_no_passage_stays_masked():
+    """The number the model produced from its own weights is the case the policy exists
+    for: it appears in nothing this caller retrieved."""
+    verdict = restoring_guard(PII_MASKED).check_output(
+        billing_answer(contexts=[CLINICAL]), question="q")
+    assert verdict.masked_text == "Bupa helpline is {PHONE}."
+    assert verdict.restored == ()
+
+
+def test_an_entity_the_policy_does_not_mark_is_never_shown():
+    """`restore_if_retrieved` is the policy file's decision, not this layer's."""
+    verdict = restoring_guard(PII_MASKED, restorable=frozenset()).check_output(
+        billing_answer(), question="q")
+    assert verdict.masked_text == "Bupa helpline is {PHONE}."
+    assert verdict.restored == ()
+
+
+def test_an_identifier_is_not_shown_even_from_the_callers_own_passage():
+    """Identifiers name a person or a case rather than a published contact, so the
+    policy file leaves them off and this must hold even when the passage carries one."""
+    masked = {
+        "action": "GUARDRAIL_INTERVENED",
+        "outputs": [{"text": "Claim {claim_id} was rejected."}],
+        "assessments": [{"sensitiveInformationPolicy": {"regexes": [
+            {"match": "CLM-2024-1000", "name": "claim_id", "action": "ANONYMIZED"}]}}],
+    }
+    passage = Retrieved(text="Claim CLM-2024-1000 was rejected.", scope="billing",
+                        label="claims")
+    verdict = restoring_guard(masked).check_output(
+        billing_answer(answer="Claim CLM-2024-1000 was rejected.", contexts=[passage]),
+        question="q")
+    assert verdict.masked_text == "Claim {claim_id} was rejected."
+    assert verdict.restored == ()
+
+
+def test_typography_does_not_hide_a_match():
+    """The document writes the number with non-breaking hyphens and the answer with
+    ASCII ones. Comparing raw would mask a value the caller can read in the source."""
+    assert "‑" in BILLING.text and "‑" not in "1800-425-2255"
+    verdict = restoring_guard(PII_MASKED).check_output(billing_answer(), question="q")
+    assert verdict.restored == ("PHONE",)

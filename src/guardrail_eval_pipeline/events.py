@@ -53,6 +53,9 @@ class Event:
     question: str | None = None
     answer: str | None = None
     guardrail: dict[str, str] = field(default_factory=dict)
+    # How many masked values of each type were shown to the caller because their own
+    # passages carried them. Counts only: the values stay out of the log.
+    restored: dict[str, int] = field(default_factory=dict)
     usage: dict[str, int] = field(default_factory=dict)
     # Spec l.60 names latency before token usage. Spans carry it per stage and in more
     # detail, but tracing is optional and this file is not — a duration that only exists

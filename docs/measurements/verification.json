@@ -27,7 +27,8 @@
     "action": "GUARDRAIL_INTERVENED",
     "reasons": [
       "PROMPT_ATTACK",
-      "MISCONDUCT"
+      "MISCONDUCT",
+      "Unauthorized Access"
     ],
     "ok": true
   },
@@ -38,7 +39,8 @@
     "action": "GUARDRAIL_INTERVENED",
     "reasons": [
       "PROMPT_ATTACK",
-      "MISCONDUCT"
+      "MISCONDUCT",
+      "Unauthorized Access"
     ],
     "ok": true
   },

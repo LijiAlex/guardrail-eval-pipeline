@@ -17,7 +17,7 @@ from typing import Callable
 
 from guardrail_eval_pipeline.contracts import TargetResponse
 from guardrail_eval_pipeline.dataset import Case
-from guardrail_eval_pipeline.guardrails.bedrock import normalise
+from guardrail_eval_pipeline.guardrails.bedrock import PUNCTUATION, fold, normalise
 
 PASS, FAIL, NOT_APPLICABLE = "pass", "fail", "n/a"
 
@@ -25,16 +25,7 @@ PASS, FAIL, NOT_APPLICABLE = "pass", "fail", "n/a"
 # NFKC alone is not enough: it folds a narrow no-break space to a space, but maps a
 # NON-BREAKING HYPHEN to U+2010 rather than to ASCII, so "PROC-RAD-01" still fails to
 # match "PROC‑RAD‑01". Applied here and deliberately NOT in the grounding normalisation,
-# where forcing hyphens to ASCII was measured to make one answer score worse.
-PUNCTUATION = str.maketrans({
-    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-",
-    "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
-})
-
-
-def fold(text: str) -> str:
-    """Normalise, then flatten punctuation, for checks that compare strings exactly."""
-    return normalise(text).translate(PUNCTUATION)
+# where forcing hyphens to ASCII lowers the score of a correct answer.
 
 # Bracketed reference markers are pointers, not claims, so a number inside one is not a
 # fact the answer is asserting.

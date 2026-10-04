@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections import Counter
 from dataclasses import dataclass, replace
 from typing import Protocol
 
@@ -85,8 +86,10 @@ def _emit(result: Guarded, *, target_name: str, request_id: str, question: str,
     The question and answer are kept because the spec's test is that one logged request can
     be explained without re-running it, and "a request was blocked" explains nothing.
 
-    The answer stored is the one the caller received, which when masking fired is the
-    masked text — `handle` has already replaced it by this point. What must never be logged
+    The answer stored is the masked one. Where a value was restored for the caller because
+    their own passages carried it, the log keeps the fully redacted text instead: an audit
+    trail should prove redaction happened without itself holding the values. What must
+    never be logged
     is `response.raw`: it is the target's whole untouched body, which after A1 carries every
     retrieved passage in full, and an audit log holding that is a second copy of the thing
     the guardrails exist to contain.
@@ -107,8 +110,10 @@ def _emit(result: Guarded, *, target_name: str, request_id: str, question: str,
         failed_closed=bool(verdict and verdict.failed_closed),
         principal=result.principal,
         question=question,
-        answer=result.response.answer,
+        answer=(verdict.redacted_text if verdict and verdict.redacted_text
+                else result.response.answer),
         guardrail=guardrail,
+        restored=dict(Counter(verdict.restored)) if verdict and verdict.restored else {},
         usage=dict(verdict.usage) if verdict else {},
         trace_id=str(run.trace_id) if run is not None else None,
         detail=verdict.detail if verdict else None,

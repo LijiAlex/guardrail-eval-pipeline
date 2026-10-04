@@ -138,3 +138,24 @@ def test_an_unreadable_line_does_not_make_the_history_unreadable(tmp_path):
     path.write_text('{"decision": "allowed"}\n{truncated\n{"decision": "blocked"}\n')
     rows = events.read("whatever", path=path)
     assert [row["decision"] for row in rows] == ["allowed", "blocked"]
+
+
+def test_a_value_shown_to_the_caller_is_still_masked_in_the_log():
+    """The two halves of the same request differ on purpose: the billing executive reads
+    a helpline their own documents carry, and the audit trail records that a phone number
+    was redacted without becoming a second copy of it."""
+    from dataclasses import replace
+
+    from tests.test_guardrails import BILLING, PII_MASKED, restoring_guard
+
+    answer = replace(sample_answer(), answer="Bupa helpline is 1800-425-2255.",
+                     contexts=[BILLING], citations=["billing_codes.pdf"])
+    result = service.handle("Bupa helpline?", target=StubTarget({"Bupa helpline?": answer}),
+                            guardrails=restoring_guard(PII_MASKED))
+
+    assert result.response.answer == "Bupa helpline is 1800-425-2255."   # the caller
+    row = logged()[-1]
+    assert row["decision"] == "masked"
+    assert row["answer"] == "Bupa helpline is {PHONE}."                  # the log
+    assert "1800-425-2255" not in json.dumps(row)
+    assert row["restored"] == {"PHONE": 1}

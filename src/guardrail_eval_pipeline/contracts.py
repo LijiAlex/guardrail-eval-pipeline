@@ -135,6 +135,16 @@ class Verdict:
     reasons: tuple[str, ...] = ()
     message: str | None = None
     masked_text: str | None = None
+    # (label, original text) for each entity Bedrock anonymised. Needed to decide whether
+    # a value may be restored; never logged, and never returned to a caller.
+    masked_entities: tuple[tuple[str, str], ...] = ()
+    # Labels of the entities shown unmasked because the caller's own passages carry them.
+    # Counted in the event log; the values themselves are never recorded.
+    restored: tuple[str, ...] = ()
+    # The fully masked text, kept for the audit log when `masked_text` has had values
+    # restored into it. The log proves redaction happened; it must not become a second
+    # copy of what was redacted.
+    redacted_text: str | None = None
     failed_closed: bool = False
     detail: str | None = None
     usage: dict[str, int] = field(default_factory=dict)

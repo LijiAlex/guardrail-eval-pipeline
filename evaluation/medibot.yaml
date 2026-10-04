@@ -179,7 +179,7 @@ cases:
     expect: answered
     grounded: false
     expected_answer: A count of escalated claims for March 2024, taken from the claims table.
-    notes: Also the question whose wording an earlier guardrail name blocked.
+    notes: Also exercises wording a denied topic must not match.
 
   # --- refusing is the correct behaviour ------------------------------------
   - id: nurse-asks-billing

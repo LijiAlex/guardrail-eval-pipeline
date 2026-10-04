@@ -110,6 +110,10 @@ class GuardrailPolicy:
     # name -> regex, from the file's `pii_regexes`. The same patterns Bedrock masks with,
     # reused by the containment check so the two cannot drift apart.
     identifier_patterns: dict[str, str] = field(default_factory=dict)
+    # Entity types and regex names the file marks `restore_if_retrieved: true`. Those may
+    # be shown unmasked when the value appears in a passage the caller actually retrieved.
+    # Absent means never, so a policy that says nothing masks everything, as before.
+    restorable: frozenset[str] = frozenset()
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -141,5 +145,10 @@ def load_policy(path: str | Path) -> GuardrailPolicy:
             for entry in data.get("pii_regexes") or []
             if entry.get("name") and entry.get("pattern")
         },
+        restorable=frozenset(
+            str(entry.get("type") or entry.get("name"))
+            for entry in (data.get("pii_entities") or []) + (data.get("pii_regexes") or [])
+            if entry.get("restore_if_retrieved") and (entry.get("type") or entry.get("name"))
+        ),
         raw=data,
     )

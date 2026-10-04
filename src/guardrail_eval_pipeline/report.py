@@ -85,7 +85,7 @@ def _heuristics(run) -> tuple[Section, list[str], dict[str, tuple[int, int, int]
 
 
 def _guardrail_counts(target: str) -> dict[str, int]:
-    """From the event log — production traffic, not the evaluation run."""
+    """Decision counts from the event log, across whatever traffic it holds."""
     rows = events.read(target)
     counts: dict[str, int] = {}
     for row in rows:
@@ -283,39 +283,3 @@ def build(run, dataset) -> str:
     return "\n".join(lines)
 
 
-START = "<!-- report:start -->"
-END = "<!-- report:end -->"
-
-
-def excerpt(report_text: str) -> str:
-    """The verdict and the signals table, lifted from a report.
-
-    The README has to show a sample report, and a hand-copied one drifts: an earlier draft
-    advertised three passing RAGAS metrics that existed in no committed file, because it
-    was written from a run that had since been replaced. Taking it from the report means
-    the two cannot disagree.
-    """
-    lines, keeping, out = report_text.splitlines(), False, []
-    for line in lines:
-        if line.startswith("## Verdict"):
-            keeping = True
-        elif line.startswith("## Guardrail decisions"):
-            break
-        if keeping:
-            out.append(line)
-    return "\n".join(out).strip()
-
-
-def update_readme(readme: Path, report_text: str) -> bool:
-    """Replace the README's sample block with the current report. True if it changed."""
-    text = readme.read_text()
-    if START not in text or END not in text:
-        return False
-    before, rest = text.split(START, 1)
-    _, after = rest.split(END, 1)
-    block = f"{START}\n\n{excerpt(report_text)}\n\n{END}"
-    updated = before + block + after
-    if updated != text:
-        readme.write_text(updated)
-        return True
-    return False

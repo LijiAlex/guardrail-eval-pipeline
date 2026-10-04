@@ -5,10 +5,6 @@ different model family from a different company — because a system grading its
 shares its blind spots: the wording it finds natural is the wording it rates highly, and a
 confident mistake reads as confident to itself.
 
-Claude Haiku on Bedrock was the first choice, for the stronger separation of a different
-provider as well. Every Anthropic model on that account is behind an unsubmitted use-case
-form, and every other Bedrock model throttled, so the judge runs where it can actually run.
-
 Four dimensions, because the spec names four, and because an accuracy-only judge scores a
 correct refusal zero — which would mark the system down for working.
 """

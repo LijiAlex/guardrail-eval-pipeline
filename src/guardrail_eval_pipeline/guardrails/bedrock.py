@@ -61,6 +61,22 @@ def _client(region: str) -> Any:
     )
 
 
+# Typography the target emits that an exact string comparison would otherwise trip over.
+# NFKC alone is not enough: it folds a narrow no-break space to a space, but maps a
+# NON-BREAKING HYPHEN to U+2010 rather than to ASCII, so "PROC-RAD-01" still fails to
+# match "PROC‑RAD‑01". Deliberately NOT applied in the grounding normalisation, where
+# forcing hyphens to ASCII lowers the score of a correct answer.
+PUNCTUATION = str.maketrans({
+    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-",
+    "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+})
+
+
+def fold(text: str) -> str:
+    """Normalise, then flatten punctuation, for checks that compare strings exactly."""
+    return normalise(text).translate(PUNCTUATION)
+
+
 @dataclass
 class BedrockGuardrail:
     """One configured Bedrock guardrail, ready to judge text."""
@@ -71,6 +87,7 @@ class BedrockGuardrail:
     input_message: str
     output_message: str
     identifier_patterns: dict[str, str] = field(default_factory=dict)
+    restorable: frozenset[str] = frozenset()
 
     @classmethod
     def from_policy(cls, policy: GuardrailPolicy, *, client: Any | None = None) -> BedrockGuardrail:
@@ -92,6 +109,7 @@ class BedrockGuardrail:
                         input_message=policy.input_message,
                         output_message=policy.output_message,
                         identifier_patterns=policy.identifier_patterns,
+                        restorable=policy.restorable,
                     )
         raise LookupError(
             f"no guardrail named {policy.name!r} in {policy.region}. "
@@ -160,6 +178,9 @@ class BedrockGuardrail:
         if noted:
             verdict = replace(verdict, reasons=verdict.reasons + noted)
 
+        if verdict.masked_text is not None and response.contexts and self.restorable:
+            verdict = self._restore(verdict, answer, response.contexts)
+
         if verdict.masked_text is not None and not response.contexts:
             # Masking withheld. The reasons stay, so the log records what was found.
             return Verdict(blocked=verdict.blocked, reasons=verdict.reasons,
@@ -168,6 +189,39 @@ class BedrockGuardrail:
                            "the target answered from its own records for a caller it did "
                            "not refuse", usage=verdict.usage)
         return verdict
+
+    def _restore(self, verdict: Verdict, sent: str, contexts: Any) -> Verdict:
+        """Show a masked value back to the caller when their own passages contain it.
+
+        Bedrock masks every contact detail, including the ones the caller asked for and is
+        entitled to read: an insurer helpline printed in the billing documents is masked
+        exactly like a personal number the model invented. Bedrock cannot tell them apart,
+        because it never sees the corpus. This layer can.
+
+        A value is shown only when it appears, verbatim, in a passage this request
+        retrieved — passages the target already filtered by the caller's role. Restoring it
+        therefore discloses nothing the caller could not read in the document itself.
+        Anything else, including a number the model produced from its own weights, stays
+        masked because it appears in no passage.
+
+        Which entities are eligible is the policy file's decision, not this function's:
+        only those marked `restore_if_retrieved`. An empty set means this never runs.
+        """
+        material = fold(" ".join(c.text for c in contexts)).lower()
+        keep = {match for label, match in verdict.masked_entities
+                if label in self.restorable and fold(match).lower() in material}
+        if not keep:
+            return verdict
+        # Rebuild from the text that was sent rather than patching Bedrock's output: the
+        # placeholders carry no identity, so with two numbers masked there is no way to
+        # tell which `{PHONE}` is which.
+        text = sent
+        for label, match in verdict.masked_entities:
+            if match not in keep:
+                text = text.replace(match, "{" + label + "}")
+        return replace(verdict, masked_text=text, redacted_text=verdict.masked_text,
+                       restored=tuple(label for label, match in verdict.masked_entities
+                                      if match in keep))
 
     # --- the one place a Bedrock response becomes a Verdict --------------------
     def _apply(self, source: str, blocks: list[dict], fallback: str) -> Verdict:
@@ -205,7 +259,7 @@ class BedrockGuardrail:
             return Verdict(blocked=True, failed_closed=True, reasons=("unrecognised-verdict",),
                            message=fallback, detail=f"action={action!r}")
 
-        reasons, blocked = [], False
+        reasons, blocked, anonymised = [], False, []
         for assessment in response.get("assessments", []):
             for group, key, label in _ASSESSMENT_PATHS:
                 for entry in assessment.get(group, {}).get(key, []) or []:
@@ -213,6 +267,8 @@ class BedrockGuardrail:
                     if entry_action in ("BLOCKED", "ANONYMIZED"):
                         reasons.append(f"{entry.get(label)}")
                         blocked = blocked or entry_action == "BLOCKED"
+                    if entry_action == "ANONYMIZED" and entry.get("match"):
+                        anonymised.append((str(entry.get(label)), str(entry["match"])))
 
         text = "".join(part.get("text", "") for part in response.get("outputs", []))
         if blocked:
@@ -221,4 +277,4 @@ class BedrockGuardrail:
                            usage=response.get("usage") or {})
         # Intervened without blocking means masked: the text stands, entities replaced.
         return Verdict(blocked=False, reasons=tuple(reasons), masked_text=text or None,
-                       usage=response.get("usage") or {})
+                       masked_entities=tuple(anonymised), usage=response.get("usage") or {})

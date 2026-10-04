@@ -73,11 +73,6 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text)
 
-    # The README's sample block is replaced from this same report, so the two cannot
-    # disagree. A hand-copied sample drifts the moment a run is repeated.
-    if report.update_readme(ROOT / "README.md", text):
-        print("README sample block refreshed from this report")
-
     verdict = next(line for line in text.splitlines() if line.startswith("## Verdict"))
     print(f"\n{verdict}\nreport written to {args.out}")
     return 0
