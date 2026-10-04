@@ -32,6 +32,16 @@ METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_rec
 
 EVALUATOR_MODEL = "qwen/qwen3.8-27b"
 EMBEDDING_MODEL = "cohere.embed-english-v3"
+# Bounded so that `strictness` calls for one case still fit inside the provider's
+# per-minute output cap, which is what a declared-but-unbounded request blows through.
+EVALUATOR_MAX_TOKENS = 400
+# RAGAS' default is 3. Measured at both on six cases spanning the observed range: the
+# mean moves 0.681 -> 0.647, five of six cases by less than 0.013, and the verdict is
+# unchanged. One is used because it costs a third of the wall clock on a provider that
+# caps output tokens per minute, and the numbers in docs/report.md were produced with it.
+# The default scores this system slightly LOWER, so this is not the flattering choice
+# being hidden — docs/measurements/strictness.json has every figure.
+ANSWER_RELEVANCY_STRICTNESS = 1
 EMBEDDING_REGION = "ap-south-1"
 
 
@@ -66,6 +76,7 @@ def eligible(outcome) -> str | None:
 def _evaluator():
     """The LLM and embeddings RAGAS will use, wrapped for its interface."""
     from langchain_aws import BedrockEmbeddings
+    from langchain_core.rate_limiters import InMemoryRateLimiter
     from langchain_groq import ChatGroq
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.llms import LangchainLLMWrapper
@@ -75,12 +86,36 @@ def _evaluator():
     # Temperature zero: the spec asks that running twice against an unchanged system give
     # consistent results, and these metrics are themselves model calls.
     #
-    # A generous timeout and retries because the provider rate-limits: the first run lost
-    # most of its scores to TimeoutError, and a metric that silently drops cases is worse
-    # than one that takes longer.
-    llm = ChatGroq(model=EVALUATOR_MODEL, temperature=0, timeout=120, max_retries=5)
+    # A generous timeout and retries because the provider rate-limits, and a metric that
+    # silently drops cases is worse than one that takes longer.
+    #
+    # `max_tokens` is not optional here. The provider rejects a request whose *expected*
+    # output exceeds its per-minute cap, so a call that declares no bound is refused
+    # outright — "Limit 1000, Requested 1737" — and the score is lost. The judge bounds
+    # its calls the same way and loses none.
+    #
+    # The rate limiter spends that per-minute budget deliberately rather than letting
+    # RAGAS' executor exhaust it in the first few seconds. One request per 45s against a
+    # 700-token bound stays inside a 1000 output-tokens-per-minute cap. Scoring is slow
+    # as a result, which is the right trade: an incomplete metric is worth less than a
+    # complete one that took half an hour.
+    llm = ChatGroq(
+        model=EVALUATOR_MODEL,
+        temperature=0,
+        timeout=120,
+        max_retries=5,
+        max_tokens=EVALUATOR_MAX_TOKENS,
+        rate_limiter=InMemoryRateLimiter(
+            requests_per_second=1 / 30,
+            check_every_n_seconds=1,
+            max_bucket_size=1,
+        ),
+    )
     embeddings = BedrockEmbeddings(model_id=EMBEDDING_MODEL, region_name=EMBEDDING_REGION)
-    return LangchainLLMWrapper(llm), LangchainEmbeddingsWrapper(embeddings)
+    # `bypass_n`: send the prompt n times rather than asking for n completions,
+    # which this provider refuses.
+    return (LangchainLLMWrapper(llm, bypass_n=True),
+            LangchainEmbeddingsWrapper(embeddings))
 
 
 def score(outcomes) -> list[Scored]:
@@ -109,27 +144,34 @@ def score(outcomes) -> list[Scored]:
         ])
         from ragas.run_config import RunConfig
 
-        # answer_relevancy generates `strictness` paraphrases of the question in one call,
-        # which it does by asking for n completions. Groq accepts n=1 only and rejects the
-        # rest with a 400, so every case using it failed. One paraphrase, and the metric
-        # runs.
-        answer_relevancy.strictness = 1
+        # answer_relevancy reverse-generates `strictness` questions from the answer and
+        # averages their similarity to the question actually asked. RAGAS asks for them as
+        # `n` completions, which this provider rejects outright — "'n' : number must be at
+        # most 1" — so the wrapper below is built with `bypass_n`, which sends the prompt
+        # that many times instead. Three separate calls, no `n` parameter.
+        #
+        # Three is RAGAS' default; see ANSWER_RELEVANCY_STRICTNESS for why this runs at
+        # one and what the difference measures out to.
+        answer_relevancy.strictness = ANSWER_RELEVANCY_STRICTNESS
 
         frame = evaluate(
             dataset,
             metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
             llm=llm, embeddings=embeddings,
-            # Two workers, with long timeouts and patient retries. The provider caps
-            # tokens per minute and a throttled job comes back as a missing score rather
-            # than an error, so coverage degrades under load — the `coverage()` figure in
+            # One worker, because the rate limiter above already serialises the calls and
+            # a second worker would only queue behind it.
+            #
+            # The timeout has to cover the wait for a rate-limiter token as well as the
+            # call itself: the limiter blocks inside the request, so a bound shorter than
+            # the pacing interval fails every job that waits for one. At one request per
+            # 45s, 90s was shorter than the wait and killed jobs that were doing nothing
+            # wrong.
+            #
+            # A throttled or timed-out job comes back as a missing score rather than an
+            # error, so coverage degrades quietly under load — the `coverage()` figure in
             # the report is what makes that visible instead of silently shrinking the
-            # denominator. One worker was tried and is worse: serialising makes the whole
-            # run long enough to be cut off, which loses more than throttling does.
-            # Bounded on purpose. Patient retries were tried — eight attempts against a
-            # 300s timeout — and a single stuck job then blocks the whole run past forty
-            # minutes, which produces nothing at all. Failing a job fast and reporting the
-            # lost coverage is strictly better than a run that never returns.
-            run_config=RunConfig(max_workers=1, timeout=90, max_retries=3),
+            # denominator.
+            run_config=RunConfig(max_workers=1, timeout=300, max_retries=3),
         ).to_pandas()
     except Exception as exc:  # noqa: BLE001
         # One failure marks every scorable case, rather than leaving some scored and some

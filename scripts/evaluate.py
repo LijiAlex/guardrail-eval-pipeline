@@ -73,6 +73,11 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text)
 
+    # The brief requires a sample report in the README; generating it from this same
+    # report is what keeps the two from disagreeing.
+    if report.update_readme(ROOT / "README.md", text):
+        print("README sample block refreshed from this report")
+
     verdict = next(line for line in text.splitlines() if line.startswith("## Verdict"))
     print(f"\n{verdict}\nreport written to {args.out}")
     return 0

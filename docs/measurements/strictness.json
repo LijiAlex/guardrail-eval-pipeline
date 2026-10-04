@@ -1,0 +1,50 @@
+{
+  "metric": "answer_relevancy",
+  "question": "does RAGAS' default strictness of 3 change the score for this target?",
+  "method": "Six cases spanning the observed range, re-scored against the committed strictness=1 values. strictness=3 is reached through RAGAS' sequential path (bypass_n), because the provider rejects n>1.",
+  "evaluator": "qwen/qwen3.8-27b",
+  "cases": [
+    {
+      "case_id": "harassment-report",
+      "strictness_1": 0.551,
+      "strictness_3": 0.543,
+      "delta": -0.008
+    },
+    {
+      "case_id": "cashless-claim",
+      "strictness_1": 0.61,
+      "strictness_3": 0.622,
+      "delta": 0.012
+    },
+    {
+      "case_id": "ecg-flags",
+      "strictness_1": 0.672,
+      "strictness_3": 0.667,
+      "delta": -0.005
+    },
+    {
+      "case_id": "meropenem-dose",
+      "strictness_1": 0.726,
+      "strictness_3": 0.726,
+      "delta": 0.0
+    },
+    {
+      "case_id": "autoclave-log",
+      "strictness_1": 0.743,
+      "strictness_3": 0.741,
+      "delta": -0.002
+    },
+    {
+      "case_id": "meropenem-tier",
+      "strictness_1": 0.783,
+      "strictness_3": 0.585,
+      "delta": -0.198
+    }
+  ],
+  "mean": {
+    "strictness_1": 0.681,
+    "strictness_3": 0.647,
+    "delta": -0.034
+  },
+  "note": "meropenem-tier scored 0.721 at strictness=3 in an earlier two-case run and 0.585 here, so the per-case figure is unstable; five of six cases move by less than 0.013."
+}

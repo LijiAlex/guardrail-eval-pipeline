@@ -29,12 +29,22 @@ sys.path.insert(0, str(ROOT / "src"))
 from guardrail_eval_pipeline import heuristics, judge, ragas_metrics  # noqa: E402
 
 
+def report_excerpt_matches(readme: str, report: str) -> bool:
+    from guardrail_eval_pipeline.report import END, START, excerpt
+
+    if START not in readme or END not in readme:
+        return False
+    block = readme.split(START, 1)[1].split(END, 1)[0].strip()
+    return block == excerpt(report).strip()
+
+
 def main() -> int:
     readme = (ROOT / "README.md").read_text()
     report = (ROOT / "docs" / "report.md").read_text()
-    # The README orients; the detail lives in docs/. A requirement is satisfied by an
-    # artefact anywhere in the documentation, so the prose checks read both.
-    prose = readme + "\n".join(p.read_text() for p in sorted((ROOT / "docs").glob("*.md")))
+    # The submission instructions name README.md specifically for the adversarial cases,
+    # the sample report, the judge and the tool substitutions, so these read the README and
+    # not the wider documentation: a check that searched docs/ too would pass while the
+    # requirement was unmet.
     dataset = yaml.safe_load((ROOT / "evaluation" / "medibot.yaml").read_text())
     policy = yaml.safe_load((ROOT / "guardrails" / "medibot.yaml").read_text())
     source = lambda name: (ROOT / "src" / "guardrail_eval_pipeline" / name).read_text()
@@ -74,7 +84,7 @@ def main() -> int:
         ("4", "l.81 structured score plus a written justification",
          len(judge.DIMENSIONS) == 4 and "comment" in judge.RUBRIC),
         ("4", "l.82 README names the judge and why not self-grading",
-         judge.JUDGE_MODEL in prose and "blind spots" in prose),
+         judge.JUDGE_MODEL in readme and "blind spots" in readme),
         ("5", "l.92 at least 4 deterministic checks", len(heuristics.CHECKS) >= 4),
         ("5", "l.93 run in the same pipeline as Component 3",
          "heuristics" in source("runner.py")),
@@ -90,10 +100,14 @@ def main() -> int:
          "uv sync --extra evaluation" in readme and "GROQ_API_KEY" in readme),
         ("S", "the target is named and linked", "github.com/LijiAlex/medibot" in readme),
         ("S", "at least 3 adversarial cases with real verdicts",
-         prose.count("GUARDRAIL_INTERVENED") >= 3),
+         readme.count("GUARDRAIL_INTERVENED") >= 3),
         ("S", "a sample report output",
-         "docs/report.md" in readme and "## Verdict:" in report),
-        ("S", "tool substitutions and why", "## Tool substitutions" in prose),
+         "## Verdict:" in readme and "## Verdict:" in report),
+        ("S", "tool substitutions and why", "## Tool substitutions" in readme),
+        # The sample block is generated from the report. Hand-editing either one, or
+        # regenerating the report without the README, makes them disagree.
+        ("S", "the README sample matches the committed report",
+         report_excerpt_matches(readme, report)),
     ]
 
     gaps = [name for _, name, ok in checks if not ok]

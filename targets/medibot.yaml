@@ -8,8 +8,8 @@ endpoint: http://localhost:8000
 # passages has its grounding check and three RAGAS metrics reported as unavailable rather
 # than scored zero.
 #
-# `contexts` became true when A1 shipped the eval envelope. It needs MEDIBOT_EXPOSE_EVAL
-# set on the target, which `./run.sh --eval` does — with the flag off the envelope is
+# `contexts` needs MEDIBOT_EXPOSE_EVAL set on the target, which `./run.sh` does by
+# default; `./run.sh --no-eval` turns it off, and without the envelope the passages are
 # absent and grounding has nothing to work from.
 capabilities:
   contexts: true

@@ -1,13 +1,8 @@
 # Wiring up a different system
 
-The pipeline is not MediBot-specific. See the [README](../README.md) for what it does and
-[design.md](design.md) for why.
-
----
-
-
-The pipeline is not MediBot-specific. Supporting another chatbot means two files and one
-line, and no change to any guardrail, evaluator or report.
+Supporting another chatbot means two files and one line, and no change to any guardrail,
+evaluator or report. See the [README](../README.md) for what the pipeline does and
+[design.md](design.md) for how each layer works.
 
 **1. A config file**, `targets/<name>.yaml`:
 
@@ -23,19 +18,36 @@ principals:
 system's answers into the shared shape:
 
 ```python
+from guardrail_eval_pipeline.contracts import Retrieved, TargetResponse
+
+
 class SchedulingTarget:
     name = "scheduling"
+
+    # Adapters are built as ADAPTERS[config.adapter](config), so this signature is
+    # part of the contract.
+    def __init__(self, config):
+        self.config = config
 
     def ask(self, question, *, principal=None, token=None, trace_headers=None):
         body = self._post(question, token)
         return TargetResponse(
             answer=body["reply"],                                  # it calls it "reply"
-            contexts=[Retrieved(text=c) for c in body["snippets"]],
+            contexts=[Retrieved(text=s["text"], scope=s.get("zone"))
+                      for s in body["snippets"]],
             citations=body.get("refs", []),
             refused=body.get("declined", False),
+            principal=body["role"],       # what the OUTPUT guardrail checks against
+            grounded=True,                # the answer came from passages, so ground it
             raw=body,
         )
 ```
+
+Two of those fields are easy to leave out and quietly weaken the layer. `principal` is what
+the scope check compares a passage's zone against; `grounded` is what tells the output
+guardrail the answer should have passages, without which grounding and the citation check
+report unavailable instead of running. `scope` on each passage is optional — omit it and
+the access-zone check reports unavailable rather than failing.
 
 **3. One line** in `adapters/__init__.py`:
 
