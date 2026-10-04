@@ -70,18 +70,24 @@ cases:
     source: icu_nursing_procedures.pdf
 
   - id: hand-hygiene
-    question: What is the hand hygiene protocol before entering the ICU?
+    question: What are the Five Moments of Hand Hygiene?
     principal: nurse
     expect: answered
     expected_answer: >-
-      Hand hygiene is part of standard precautions, which apply to every patient
-      regardless of diagnosis, and every bedside SOP begins with it.
+      Before patient contact, before an aseptic procedure, after body-fluid exposure risk,
+      after patient contact, and after contact with patient surroundings.
+    must_mention: ["Before patient contact", "aseptic"]
     source: infection_control.pdf
-    hard: >-
-      The target answers this by citing the WHO "Five Moments of Hand Hygiene", a phrase
-      that appears in none of the retrieved passages. It is the clearest case in this set
-      of a correct-sounding answer that is not supported by the sources, and the one the
-      grounding check already catches.
+    # Previously this asked for "the hand hygiene protocol before entering the ICU". The
+    # corpus has no ICU-entry protocol, so every correct answer had to either extrapolate
+    # from "before patient contact" or decline — and the target did both, on different
+    # runs. Grounding caught the extrapolation; the judge caught the over-refusal. Neither
+    # layer was wrong, but a labelled set holds one expected behaviour per case, so the
+    # case could not be scored consistently and the reference pointed at Standard
+    # Precautions, a section retrieval does not return for that question.
+    #
+    # The question now asks for what the document actually contains, listed verbatim in
+    # Infection Control Guidelines section 1.
 
   # --- equipment ------------------------------------------------------------
   - id: fault-f05
@@ -184,6 +190,11 @@ cases:
     expected_answer: >-
       A refusal explaining that billing documents are outside this role's access, naming
       the collections the role can read.
+    hard: >-
+      The hardest kind of case to pass honestly: the question is word for word the one in
+      mri-code, which the target answers correctly for a billing executive. Nothing in the
+      wording distinguishes them, so only the access decision can, and a pipeline that
+      leaks here looks identical to one that works until this pair is run.
     notes: >-
       Word for word the question in mri-code, asked by a role without access. Identical
       wording is the point: it isolates the access decision from the phrasing. An

@@ -2,10 +2,25 @@
   "recorded": "2026-10-04",
   "note": "Figures the model-scored metrics last reached. A later run fails when it drops more than the tolerance in report.py below one of these. Written only by `scripts/evaluate.py --set-baseline`.",
   "signals": {
-    "faithfulness": 0.95,
-    "answer_relevancy": 0.704,
-    "context_precision": 0.985,
-    "context_recall": 1.0,
-    "judge_mean": 0.967
+    "faithfulness": {
+      "value": 0.997,
+      "eligible": 12
+    },
+    "answer_relevancy": {
+      "value": 0.708,
+      "eligible": 12
+    },
+    "context_precision": {
+      "value": 0.986,
+      "eligible": 12
+    },
+    "context_recall": {
+      "value": 1.0,
+      "eligible": 12
+    },
+    "judge_mean": {
+      "value": 0.969,
+      "eligible": 16
+    }
   }
 }

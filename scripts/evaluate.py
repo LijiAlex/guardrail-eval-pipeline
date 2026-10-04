@@ -71,6 +71,19 @@ def main() -> int:
         runner.add_judge(dataset, run, pace_s=args.pace)
 
     runner.save(run, Path(args.run_file))
+
+    if args.set_baseline:
+        # Before the report is built, so the report it writes agrees with the baseline file
+        # on disk. Building first left a report saying no baseline existed moments after
+        # one was written.
+        #
+        # Deliberate, never automatic: a baseline that updated itself on every run would
+        # let the system decline indefinitely, one tolerated step at a time. A run that
+        # sets the baseline therefore clears its own gates by construction; the figures it
+        # records are the ones later runs are measured against.
+        written = report.write_baseline(run, dataset)
+        print(f"baseline recorded for {', '.join(written)}")
+
     text = report.build(run, dataset)
     out = ROOT / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -80,12 +93,6 @@ def main() -> int:
     # report is what keeps the two from disagreeing.
     if report.update_readme(ROOT / "README.md", text):
         print("README sample block refreshed from this report")
-
-    if args.set_baseline:
-        # Deliberate, never automatic: a baseline that updated itself on every run would
-        # let the system decline indefinitely, one tolerated step at a time.
-        written = report.write_baseline(run, dataset)
-        print(f"baseline recorded for {', '.join(written)}")
 
     verdict = next(line for line in text.splitlines() if line.startswith("## Verdict"))
     print(f"\n{verdict}\nreport written to {args.out}")

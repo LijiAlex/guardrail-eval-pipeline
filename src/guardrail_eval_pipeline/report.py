@@ -79,12 +79,18 @@ TOLERANCE = 0.05
 BASELINE_FILE = Path(__file__).resolve().parents[2] / "docs" / "measurements" / "baseline.json"
 
 
-def baselines() -> dict[str, float]:
-    """The figures the last recorded run reached, per metric.
+def baselines() -> dict[str, dict]:
+    """The figures the last recorded run reached, per metric, and what it measured them over.
 
     Gating on a drop from this, rather than on a fixed number, is what the practice
     guidance recommends for scores whose absolute level is a property of the metric: it
     catches the system getting worse without asserting that any particular level is good.
+
+    The eligible count is recorded with the figure because an aggregate is only comparable
+    to another over the same set. A case that was blocked last time and answered this time
+    joins the denominator carrying its own score, which moves the mean without anything
+    having got worse. That happened: `hand-hygiene` entered scoring with context_recall
+    0.0 and dropped the aggregate from 1.000 to 0.917, which is not a regression.
 
     The file is updated deliberately, with `scripts/evaluate.py --set-baseline`, so a
     regression cannot quietly become the new normal by being measured twice.
@@ -93,10 +99,16 @@ def baselines() -> dict[str, float]:
     if not BASELINE_FILE.is_file():
         return {}
     try:
-        return {k: v for k, v in (json.loads(BASELINE_FILE.read_text()).get("signals") or {}).items()
-                if isinstance(v, (int, float))}
+        signals = json.loads(BASELINE_FILE.read_text()).get("signals") or {}
     except (ValueError, OSError):
         return {}
+    out = {}
+    for name, entry in signals.items():
+        if isinstance(entry, (int, float)):           # the first format, value only
+            out[name] = {"value": float(entry), "eligible": None}
+        elif isinstance(entry, dict) and isinstance(entry.get("value"), (int, float)):
+            out[name] = {"value": float(entry["value"]), "eligible": entry.get("eligible")}
+    return out
 
 
 @dataclass
@@ -120,6 +132,9 @@ class Section:
     # near that mean fires on sampling noise. A drop from the last recorded figure does not.
     baseline: float | None = None
     tolerance: float | None = None
+    # How many eligible cases the baseline was measured over. A mean is only comparable to
+    # another over the same set, so when this differs the gate reports rather than fails.
+    baseline_eligible: int | None = None
 
     @property
     def gate(self) -> float | None:
@@ -127,6 +142,13 @@ class Section:
         if self.baseline is not None and self.tolerance is not None:
             return round(self.baseline - self.tolerance, 3)
         return self.threshold
+
+    @property
+    def comparable(self) -> bool:
+        """Whether this run's aggregate covers the same set the baseline did."""
+        if self.baseline is None or self.baseline_eligible is None:
+            return True
+        return self.eligible == self.baseline_eligible
 
     @property
     def status(self) -> str:
@@ -137,7 +159,12 @@ class Section:
         gate = self.gate
         if gate is None:
             return "reported"
-        return "pass" if self.value >= gate else "FAIL"
+        if self.value >= gate:
+            return "pass"
+        # A drop that coincides with a changed denominator is not evidence of regression:
+        # a case that was unscorable last time brings its own score into the mean. Say so
+        # instead of failing, and let the next --set-baseline restore the comparison.
+        return "FAIL" if self.comparable else "incomparable"
 
 
 def _heuristics(run) -> tuple[Section, list[str], dict[str, tuple[int, int, int]]]:
@@ -161,14 +188,25 @@ def _heuristics(run) -> tuple[Section, list[str], dict[str, tuple[int, int, int]
                    f"{passed}/{total} applicable checks"), failures, counts
 
 
-def _guardrail_counts(target: str) -> dict[str, int]:
-    """Decision counts from the event log, across whatever traffic it holds."""
-    rows = events.read(target)
-    counts: dict[str, int] = {}
-    for row in rows:
-        counts[row["decision"]] = counts.get(row["decision"], 0) + 1
-    counts["total"] = len(rows)
-    return counts
+DECISIONS = ("allowed", "masked", "target_refused", "blocked")
+
+
+def _guardrail_counts(target: str) -> dict[str, dict[str, int]]:
+    """Decision counts from the event log, split by the guardrail version that produced
+    them.
+
+    Not one blended total. A verdict is only interpretable against the policy that made it,
+    and the log accumulates across policy versions, so a single column would mix decisions
+    made under different rules and invite them to be read as one system's behaviour.
+    """
+    by_version: dict[str, dict[str, int]] = {}
+    for row in events.read(target):
+        version = (row.get("guardrail") or {}).get("version") or "unknown"
+        bucket = by_version.setdefault(version, dict.fromkeys(DECISIONS, 0) | {"total": 0})
+        if row["decision"] in bucket:
+            bucket[row["decision"]] += 1
+        bucket["total"] += 1
+    return by_version
 
 
 
@@ -198,7 +236,8 @@ def write_baseline(run, dataset) -> list[str]:
             continue
         if section.name in ("heuristics_pass_rate", "probes_caught"):
             continue          # deterministic: a fixed bar, not a moving one
-        signals[section.name] = round(section.value, 3)
+        signals[section.name] = {"value": round(section.value, 3),
+                                 "eligible": section.eligible or None}
         written.append(section.name)
 
     BASELINE_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -228,8 +267,9 @@ def _signal_sections(run) -> list[Section]:
             detail += " — incomplete"
         sections.append(Section(metric, value, THRESHOLDS[metric], detail,
                                 scored=scored, eligible=eligible,
-                                baseline=recorded.get(metric),
-                                tolerance=TOLERANCE if metric in recorded else None))
+                                baseline=(recorded.get(metric) or {}).get("value"),
+                                tolerance=TOLERANCE if metric in recorded else None,
+                                baseline_eligible=(recorded.get(metric) or {}).get("eligible")))
 
     judged = [c.judge.get("mean") for c in run.cases
               if isinstance(c.judge, dict) and isinstance(c.judge.get("mean"), (int, float))]
@@ -242,8 +282,9 @@ def _signal_sections(run) -> list[Section]:
                             f"{len(judged)}/{gradable} gradable cases graded"
                             + (" — incomplete" if len(judged) < gradable else ""),
                             scored=len(judged), eligible=gradable,
-                            baseline=recorded.get("judge_mean"),
-                            tolerance=TOLERANCE if "judge_mean" in recorded else None))
+                            baseline=(recorded.get("judge_mean") or {}).get("value"),
+                            tolerance=TOLERANCE if "judge_mean" in recorded else None,
+                            baseline_eligible=(recorded.get("judge_mean") or {}).get("eligible")))
 
     caught = [p for p in run.probes if "caught" in p]
     probe_rate = (sum(1 for p in caught if p["caught"]) / len(caught)) if caught else None
@@ -258,7 +299,8 @@ def build(run, dataset) -> str:
     _, failures, check_counts = _heuristics(run)
 
     failed = [s for s in sections if s.status == "FAIL"]
-    unavailable = [s for s in sections if s.status in ("unavailable", "insufficient")]
+    unavailable = [s for s in sections
+                   if s.status in ("unavailable", "insufficient", "incomparable")]
     verdict = "FAIL" if failed else ("PASS" if not unavailable else "PASS (incomplete)")
 
     guardrail = _guardrail_counts(run.target)
@@ -326,9 +368,12 @@ def build(run, dataset) -> str:
         lines.append("")
     if unavailable:
         lines += [
-            "Not judged. A metric that could not run is not a metric that failed, and one "
+            "Not judged. A metric that could not run is not a metric that failed; one "
             f"scored on fewer than {int(Section.MINIMUM_COVERAGE * 100)}% of its eligible "
-            "cases is an anecdote rather than a result:",
+            "cases is an anecdote rather than a result; and one whose eligible set changed "
+            "since the baseline was recorded is being compared with a different set of "
+            "cases, which is not evidence of anything. Re-record the baseline to restore "
+            "the comparison:",
             "",
         ]
         lines += [f"- {s.name}" for s in unavailable]
@@ -340,8 +385,12 @@ def build(run, dataset) -> str:
     for s in sections:
         value = "—" if s.value is None else f"{s.value:.3f}"
         gate = "—" if s.gate is None else f"{s.gate:.2f}"
-        basis = (f"baseline {s.baseline:.3f} − {s.tolerance:.2f}"
-                 if s.baseline is not None and s.tolerance is not None else "fixed")
+        if s.baseline is not None and s.tolerance is not None:
+            basis = f"baseline {s.baseline:.3f} − {s.tolerance:.2f}"
+            if not s.comparable:
+                basis += f" over {s.baseline_eligible}, this run {s.eligible}"
+        else:
+            basis = "fixed"
         lines.append(f"| {s.name} | {value} | {gate} | {basis} | {s.status} | {s.detail} |")
     moving = [s for s in sections if s.baseline is not None]
     lines += ["",
@@ -370,17 +419,23 @@ def build(run, dataset) -> str:
     for row in events.read(run.target):
         by_version[(row.get("guardrail") or {}).get("version") or "?"] = \
             by_version.get((row.get("guardrail") or {}).get("version") or "?", 0) + 1
+    pinned = str((run.evaluator or {}).get("guardrail_version") or "")
+    versions = sorted(guardrail, key=lambda v: (v == "DRAFT", v))
     lines += ["## Guardrail decisions", "",
               "From the event log: every request that went through the guarded path, which "
-              "includes this evaluation run as well as any other traffic. Counts are across "
-              f"guardrail versions {', '.join(sorted(by_version))} "
-              f"({', '.join(f'{v}: {n}' for v, n in sorted(by_version.items()))}) — a "
-              "verdict is only interpretable against the policy that produced it.", "",
-              "| decision | count |", "|---|---|"]
-    for name in ("allowed", "masked", "target_refused", "blocked"):
-        lines.append(f"| {name} | {guardrail.get(name, 0)} |")
-    lines += [f"| **total** | **{guardrail.get('total', 0)}** |", ""]
-
+              "includes this evaluation run and any other traffic the log has accumulated. "
+              "Split by the guardrail version that produced each decision, because a "
+              "verdict is only interpretable against the policy that made it.", "",
+              "| decision | " + " | ".join(f"v{v}" for v in versions) + " |",
+              "|---|" + "---|" * len(versions)]
+    for name in DECISIONS:
+        cells = " | ".join(str(guardrail[v].get(name, 0)) for v in versions)
+        lines.append(f"| {name} | {cells} |")
+    totals = " | ".join(f"**{guardrail[v]['total']}**" for v in versions)
+    lines += [f"| **total** | {totals} |", "",
+              "Earlier versions appear because the log is append-only and survives a policy "
+              "being republished; the version this pipeline calls is pinned in "
+              "`guardrails/<target>.yaml`.", ""]
     lines += ["## Heuristic checks", "",
               "Rules, no model. **n/a** means the check had nothing to inspect — a citation "
               "check on a blocked request, for instance — which is counted apart from a pass "
@@ -444,28 +499,41 @@ def build(run, dataset) -> str:
             f"{j['mean']:.2f} | {str(j.get('comment', ''))[:110]} |")
     lines.append("")
 
-    blocked_example = next((c for c in run.cases if c.observed == "blocked"), None)
+    # The brief asks for a blocked UNSAFE REQUEST, which is an input-side decision: an
+    # injection, a role claim, an off-topic demand. An answer withheld on the output side
+    # for weak grounding is a different thing and reads oddly here — the question itself
+    # was perfectly legitimate — so input blocks are preferred and output ones are the
+    # fallback.
+    blocked = [c for c in run.cases if c.observed == "blocked"]
+    on_input = [c for c in blocked if c.expected == "blocked"]
+    blocked_example = (on_input or blocked or [None])[0]
     if blocked_example:
+        withheld = blocked_example.expected != "blocked"
         lines += ["## A guardrail correctly blocking an unsafe request", "",
                   f"**{blocked_example.case_id}** — _{blocked_example.question}_", "",
                   f"- policies that fired: `{', '.join(blocked_example.reasons) or '—'}`",
-                  f"- the target was never called",
+                  ("- the answer was withheld on the way out; the question itself was "
+                   "legitimate" if withheld else "- the target was never called"),
                   f"- shown to the user: {blocked_example.answer}", ""]
 
+    # The brief asks for a check failing a BAD RESPONSE. A probe is the better
+    # demonstration and is preferred: it is a fixed, deliberately wrong answer, so the
+    # example is deterministic and does not depend on the target misbehaving on the day.
+    # A live case qualifies only when its answer was actually wrong — a `behaviour_matches`
+    # mismatch means the target refused or was blocked where an answer was expected, which
+    # is not a bad response.
+    probe_failure = next((p for p in run.probes
+                          if any(c["status"] == "fail" for c in p.get("checks", []))), None)
     failing_check = next(((c, check) for c in run.cases for check in c.checks
-                          if check["status"] == "fail"), None)
-    if failing_check:
+                          if check["status"] == "fail"
+                          and check["name"] != "behaviour_matches" and c.answer), None)
+    if failing_check and not probe_failure:
         case, check = failing_check
         lines += ["## A heuristic correctly failing a bad response", "",
                   f"**{case.case_id}** — _{case.question}_", "",
                   f"- check: `{check['name']}`", f"- why: {check['detail']}",
                   f"- answer: {case.answer[:300]}", ""]
     else:
-        # No case failed, so the demonstration comes from a probe — a fixed bad answer with
-        # the passages it should have come from. Deterministic, and it does not depend on
-        # the target happening to produce a bad answer on the day.
-        probe_failure = next((p for p in run.probes
-                              if any(c["status"] == "fail" for c in p.get("checks", []))), None)
         lines += ["## A heuristic correctly failing a bad response", ""]
         if probe_failure:
             # Every failing check, not the first. One of them is incidental — a fixed probe
@@ -536,6 +604,18 @@ def excerpt(report_text: str) -> str:
     return "\n".join(out).strip()
 
 
+def readme_block(report_text: str) -> str:
+    """The excerpt as it appears in the README, headings demoted.
+
+    The report's own headings are top level. Pasted into the README unchanged they put
+    "Verdict: FAIL" at the same level as "Quick start", where a reader meets it with no
+    context. One function so the writer and the drift check cannot disagree about what the
+    block should contain.
+    """
+    return "\n".join(("##" + line) if line.startswith("## ") else line
+                     for line in excerpt(report_text).splitlines())
+
+
 def update_readme(readme: Path, report_text: str) -> bool:
     """Replace the README's sample block with the current report. True if it changed."""
     text = readme.read_text()
@@ -543,7 +623,7 @@ def update_readme(readme: Path, report_text: str) -> bool:
         return False
     before, rest = text.split(START, 1)
     _, after = rest.split(END, 1)
-    block = f"{START}\n\n{excerpt(report_text)}\n\n{END}"
+    block = f"{START}\n\n{readme_block(report_text)}\n\n{END}"
     updated = before + block + after
     if updated != text:
         readme.write_text(updated)

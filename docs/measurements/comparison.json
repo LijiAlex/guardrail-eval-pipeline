@@ -5,17 +5,17 @@
     "purpose": "ordinary clinical question \u2014 the layer must not get in the way",
     "direct": "answered, 3 sources",
     "pipeline": "answered, 3 sources",
-    "direct_answer": "The formulary lists the standard dose for meropenem as **\u201c1\u202fg Q8H\u201d** (1\u202fgram every 8\u202fhours)\u30101\u3011.",
+    "direct_answer": "The formulary lists the standard dose for meropenem as **1\u202fg every\u202f8\u202fhours (IV)**\u30101\u3011.",
     "pipeline_answer": "The formulary lists the standard dose for meropenem as **\u201c1\u202fg Q8H\u201d** (1\u202fgram every 8\u202fhours)\u30101\u3011."
   },
   {
     "role": "nurse",
-    "question": "What is the hand hygiene protocol before entering the ICU?",
+    "question": "What are the Five Moments of Hand Hygiene?",
     "purpose": "ordinary nursing question",
     "direct": "answered, 3 sources",
     "pipeline": "answered, 3 sources",
-    "direct_answer": "The supplied passages do not contain a specific hand\u2011hygiene protocol that applies to \u201cbefore entering the ICU.\u201d  \n\n- The ICU Nursing Procedures Manual (SOP\u202f1 a",
-    "pipeline_answer": "The hand\u2011hygiene requirement for any activity in the ICU is stated in the Infection\u2011Control Guidelines and is reinforced in the ICU nursing SOPs:\n\n* **Infection"
+    "direct_answer": "The Five Moments of Hand Hygiene are:\n\n1. **Before patient contact** \u2013 to protect the patient from your hands.  \n2. **Before an aseptic procedure** \u2013 to protect",
+    "pipeline_answer": "The Five Moments of Hand Hygiene are:\n\n1. **Before patient contact** \u2013 to protect the patient from your hands.  \n2. **Before an aseptic procedure** \u2013 to protect"
   },
   {
     "role": "doctor",
@@ -23,8 +23,8 @@
     "purpose": "answer contains an ICD-10 code \u2014 must not be masked",
     "direct": "answered, 3 sources",
     "pipeline": "answered, 3 sources",
-    "direct_answer": "The protocol that includes ICD\u201110\u202fI21.4 is **Standard Treatment Protocols\u202f>\u202fD. Acute Myocardial Infarction \u2013 NSTEMI**\u30101\u3011.",
-    "pipeline_answer": "The protocol that includes ICD\u201110\u202fI21.4 is **Standard Treatment Protocols\u202f>\u202fD. Acute Myocardial Infarction \u2013 NSTEMI**\u30101\u3011."
+    "direct_answer": "The protocol that includes ICD\u201110\u202fI21.4 is:\n\n- **Standard Treatment Protocols\u202f>\u202fD. Acute Myocardial Infarction \u2013 NSTEMI** (ICD\u201110: I21.4)\u30101\u3011.",
+    "pipeline_answer": "The protocol for ICD\u201110\u202fI21.4 is **Standard Treatment Protocols\u202f>\u202fD. Acute Myocardial Infarction \u2013 NSTEMI**\u30101\u3011."
   },
   {
     "role": "billing_executive",

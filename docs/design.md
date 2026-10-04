@@ -173,12 +173,9 @@ a space.
 At `0.75` against raw answers, 3 of 11 correct answers would have been blocked. The chosen
 `0.50` sits near the middle of the measured gap.
 
-One of the three was not punctuation. The hand-hygiene question asks for the protocol
-*before entering the ICU*; the passages document the WHO "Five Moments" (before patient
-contact, before an aseptic procedure) and ICU SOPs that begin with hand hygiene, but no
-rule for entering the unit. The answer quotes them and extrapolates, and scores lowest of
-the eleven even normalised. Extrapolation past the passages is the behaviour the filter
-exists to catch.
+One of the three was not punctuation: the answer reached past its passages, asserting a
+rule they did not state. It scores lowest of the eleven even normalised, which is the
+behaviour this filter exists to catch.
 
 ### Acceptance
 
@@ -501,7 +498,7 @@ generated from.
 | question | asked as | straight to the target | through the pipeline |
 |---|---|---|---|
 | What is the standard dose of meropenem? | doctor | answered, 3 sources | answered, 3 sources |
-| What is the hand hygiene protocol before entering the ICU? | nurse | answered, 3 sources | answered, 3 sources |
+| What are the Five Moments of Hand Hygiene? | nurse | answered, 3 sources | answered, 3 sources |
 | Which protocol covers ICD-10 I21.4? | doctor | answered, 3 sources | answered, 3 sources |
 | Which insurer has the most approved claims? | billing_executive | answered, 1 source | answered, 1 source |
 | What are the insurance billing codes for an MRI? | nurse | target refused (role) | target refused (role) |
@@ -534,7 +531,7 @@ writing its own exam.
 **Every expected answer was written from the target's source documents**, not from its
 output. Labels copied from a system make it score well by construction.
 `scripts/verify_labels.py` checks each one — every fact fragment must appear in the document
-its case names, and all 13 across 10 cases do. That catches a fact written from memory and a
+its case names, and all 16 across 12 cases do. That catches a fact written from memory and a
 fact attributed to the wrong document.
 
 **Three behaviours, not one.** A set of only answerable questions measures half a system:
@@ -554,11 +551,12 @@ nurse              refusal=role   sources=0   This looks like a question for bil
 ```
 
 **Three cases are hard on purpose**, because faithfulness and relevancy look fine on easy
-questions. The hand-hygiene case is the clearest: the corpus documents hand hygiene before
-patient contact, and the question asks for a protocol before entering the ICU, so a
-correct-sounding answer has to extrapolate past what the passages state. The F-05 case turns on a code the manual uses twice, for two
-different devices, so retrieval has to pick the passage matching the device named in the
-question rather than the first passage carrying the code.
+questions. `fault-f05` turns on a code the manual uses twice for two different devices, so
+retrieval has to pick the passage matching the device the question names rather than the
+first passage carrying the code. `nurse-asks-billing` is word for word the question in
+`mri-code`, asked by a role without access, so nothing in the wording distinguishes them
+and only the access decision can. `ecg-flags` asks for a set of values where a partial
+answer reads as a complete one.
 
 **Probes test the judge, not the system.** Three fixed answers that never reach the target:
 a confidently wrong dosage, a right answer with an invented citation, and a correct refusal.

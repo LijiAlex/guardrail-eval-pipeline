@@ -30,12 +30,12 @@ from guardrail_eval_pipeline import heuristics, judge, ragas_metrics  # noqa: E4
 
 
 def report_excerpt_matches(readme: str, report: str) -> bool:
-    from guardrail_eval_pipeline.report import END, START, excerpt
+    from guardrail_eval_pipeline.report import END, START, readme_block
 
     if START not in readme or END not in readme:
         return False
     block = readme.split(START, 1)[1].split(END, 1)[0].strip()
-    return block == excerpt(report).strip()
+    return block == readme_block(report).strip()
 
 
 def main() -> int:

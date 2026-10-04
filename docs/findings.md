@@ -3,11 +3,11 @@
 What the guardrail catches, what it misses, and the defects this pipeline found — in its
 target and in its own dataset.
 
-**Contents** — [Adversarial cases](#adversarial-cases-and-their-live-verdicts) ·
+**Contents** — [Adversarial cases, and their live verdicts](#adversarial-cases-and-their-live-verdicts) ·
 [A legitimate question refused as off-topic](#a-legitimate-question-refused-as-off-topic) ·
-[Two mislabelled cases](#two-mislabelled-cases-surfaced-by-context_precision) ·
-[`answer_relevancy` below threshold](#answer_relevancy-sits-below-its-threshold) ·
-[The target does not reproduce itself](#the-target-does-not-reproduce-itself-run-to-run)
+[Two mislabelled cases, surfaced by `context_precision`](#two-mislabelled-cases-surfaced-by-context_precision) ·
+[`answer_relevancy` reads lower than its conventional bar](#answer_relevancy-reads-lower-than-its-conventional-bar) ·
+[An intermittent defect in the target's SQL path](#an-intermittent-defect-in-the-targets-sql-path)
 
 ---
 
@@ -197,71 +197,56 @@ question when two passages carry the same code.
 
 ---
 
-## `answer_relevancy` sits below its threshold
+## `answer_relevancy` reads lower than its conventional bar
 
-One of the two signals behind the FAIL verdict. Four explanations were tested and
-eliminated before the number was accepted as real.
+The metric sits around 0.70 for answers the judge grades 0.97. That gap is a property of
+what the metric measures, not a quality problem, and it is worth understanding before the
+number is read as one.
 
-| run | aggregate | best single case | coverage |
-|---|---|---|---|
-| under guardrail v2 | 0.641 | 0.795 | 12/12 |
-| under guardrail v3 | 0.695 | 0.783 | 10/11 |
+RAGAS reverse-generates questions from the answer, embeds them, and averages their cosine
+similarity to the question actually asked. It uses the question and the answer only — not
+the retrieved passages — and scores alignment with intent rather than factual accuracy.
 
-**What the metric measures.** RAGAS reverse-generates questions from the answer, embeds
-them, and averages their cosine similarity to the question actually asked. Its own
-documentation is explicit that it uses `user_input` and `response` only, **not** the
-retrieved contexts, and that it scores alignment with intent rather than factual accuracy.
-It penalises answers that are incomplete or carry unnecessary detail, and scores a
-deliberately non-committal answer 0 — which is what happened to `hand-hygiene` in the v2
-run, where it replied that the passages did not contain the protocol asked for and the
-judge graded that same answer 1.0 on all four dimensions.
+**The answers are more specific than the questions**, so the generated question is narrower
+than the one asked and the similarity drops:
 
-**Four explanations, all eliminated by measurement:**
+| asked | generated from the answer | cosine |
+|---|---|---|
+| *What is the standard dose of meropenem?* | *What is the standard dose for meropenem listed **in the formulary**?* | 0.930 |
+| *How many days of casual leave do staff get?* | *How many days do **clinical and non-clinical** staff receive **per year**?* | 0.834 |
 
-| hypothesis | result |
-|---|---|
-| citation markers depress the score, as they did for grounding | answers **with** markers average 0.713, without 0.653 |
-| verbose answers score lower | the lowest scorer is one of the shortest, at 257 characters |
-| retrieved contexts drag it down | the metric does not read contexts at all |
-| `strictness=1` weakens it | measured at 3: mean 0.681 → 0.647, verdict unchanged |
+RAGAS calls that extra detail unnecessary. In a clinical setting it is not: an answer that
+said "8 days" without distinguishing staff type would be wrong for half its readers.
 
-The strictness comparison is in [`measurements/strictness.json`](measurements/strictness.json).
-RAGAS' default is 3, and reaching it on this provider needs the sequential path (`bypass_n`)
-because `n>1` is rejected. It scores this system *lower*, so running at 1 is not a flattering
-choice being hidden.
+**The metric still separates good answers from drifted ones.** Scored against the question
+they answer, the set averages 0.879; scored against a question they do not, 0.236 — a
+separation of 0.643. A threshold sits comfortably inside that gap.
 
-**The threshold.** It was 0.80, the metric's convention. No single case has reached 0.80 in
-any run, so that bar could never fire as the regression detector it is meant to be. RAGAS'
-guidance is to derive a threshold from the observed distribution — "if your median is 0.82,
-setting a threshold at 0.80 lets you catch regressions while allowing real improvement
-noise". The median here is near 0.73, so the threshold is now **0.70**, and the aggregate of
-0.695 still falls below it. It was not moved again to close that 0.005.
+**Single scores are noisy.** The same answer has scored 0.726 and 0.930 on different draws,
+which is why the gate measures a drop from the last recorded figure rather than a fixed
+line near the mean.
 
-The absolute reading is not flattered by the change: 0.75–0.95 is the band usually called
-solid, and these answers are below it. They are accurate and well-cited — faithfulness is
-0.956 and the judge 0.893 — but not tightly scoped to the question asked.
+## An intermittent defect in the target's SQL path
 
-## The target does not reproduce itself run to run
+`heuristics_pass_rate` fails at 99 of 100 checks, on one case:
 
-`heuristics_pass_rate` fell to 0.979 on the v3 run, from two cases whose observed behaviour
-differed from their label:
+| case | labelled | observed |
+|---|---|---|
+| `claims-by-insurer` | `answered` | `target_refused` |
 
-| case | labelled | observed | why |
-|---|---|---|---|
-| `hand-hygiene` | `answered` | `blocked` | the output grounding check scored the answer below 0.50 and withheld it |
-| `claims-by-insurer` | `answered` | `target_refused` | the target replied "I could not form a database query from that question" |
+Asked *"Which insurer has the most approved claims?"*, the target answers from the claims
+table — when it works. When it does not, it replies *"I could not form a database query
+from that question. Please rephrase it."*
 
-Neither is a pipeline defect. The first is the grounding check working: that case is hard on
-purpose: the question asks for a protocol *before entering the ICU*, and the corpus has
-none. It documents the WHO "Five Moments" (before patient contact, before an aseptic
-procedure) and ICU SOPs that begin with hand hygiene. The answer quotes those passages
-correctly — they ARE retrieved — and then extrapolates to a rule for entering the unit.
-Whether that extrapolation lands above or below the threshold varies between runs. The second is the target failing to generate SQL on the day.
+Measured across repeated attempts, asked directly of the target and through the pipeline,
+it fails **roughly half the time**. Both paths behave the same, so the pipeline is not
+implicated. The answer, when it comes, is correct: ICICI Lombard with 9 approved claims,
+which the claims table confirms.
 
-A labelled set expects one behaviour per case, and a language model does not guarantee one.
-That is why `--reuse` exists: repeatability belongs to the scoring, not to the generation,
-so re-scoring saved answers is deterministic even though re-asking the target is not.
+This is the finding the layer exists to produce. An intermittent failure in a text-to-SQL
+step is exactly the kind of defect that survives manual testing — ask once, see it work,
+ship it — and it is visible here because the same question is asked on every run and the
+result is recorded rather than observed.
 
-RAGAS coverage on this run was also reduced by the provider's rate limit — the per-minute
-output-token cap rejected several scoring calls, which is why three metrics report
-*incomplete* rather than a full 11/11.
+The case is left failing. Relabelling it `target_refused` would record a defect as the
+expected behaviour, and removing it would delete the evidence.

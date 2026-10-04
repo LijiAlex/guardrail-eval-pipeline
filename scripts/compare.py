@@ -31,7 +31,7 @@ ACCOUNTS = {
 CASES = [
     ("doctor", "What is the standard dose of meropenem?",
      "ordinary clinical question — the layer must not get in the way"),
-    ("nurse", "What is the hand hygiene protocol before entering the ICU?",
+    ("nurse", "What are the Five Moments of Hand Hygiene?",
      "ordinary nursing question"),
     ("doctor", "Which protocol covers ICD-10 I21.4?",
      "answer contains an ICD-10 code — must not be masked"),

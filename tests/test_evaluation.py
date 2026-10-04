@@ -427,3 +427,30 @@ def test_a_mean_over_too_few_cases_is_insufficient_not_a_pass():
     section = report.Section("judge_mean", 1.0, threshold=0.70, scored=2, eligible=16)
     assert section.status == "insufficient"
 
+
+
+def test_a_drop_is_not_a_regression_when_the_eligible_set_changed():
+    """A case that was blocked last run and answered this one joins the denominator
+    carrying its own score. The mean moves without anything having got worse, so the gate
+    reports rather than fails — which is exactly what happened to context_recall when
+    hand-hygiene became scorable."""
+    section = report.Section("context_recall", 0.917, threshold=0.70, scored=12, eligible=12,
+                             baseline=1.0, tolerance=0.05, baseline_eligible=11)
+    assert section.comparable is False
+    assert section.status == "incomparable"
+
+
+def test_a_drop_over_the_same_set_still_fails():
+    section = report.Section("context_recall", 0.917, threshold=0.70, scored=11, eligible=11,
+                             baseline=1.0, tolerance=0.05, baseline_eligible=11)
+    assert section.comparable is True
+    assert section.status == "FAIL"
+
+
+def test_a_baseline_without_a_recorded_denominator_is_still_comparable():
+    """The first baseline format stored a bare number. It should keep working rather than
+    silently turning every signal into 'incomparable'."""
+    section = report.Section("faithfulness", 0.90, threshold=0.80, scored=11, eligible=11,
+                             baseline=0.95, tolerance=0.05, baseline_eligible=None)
+    assert section.comparable is True
+    assert section.status == "pass"

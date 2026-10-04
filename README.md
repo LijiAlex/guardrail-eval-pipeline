@@ -17,7 +17,7 @@ adapter, and supporting another system means one config file and one adapter cla
 **Contents** — [What it does](#what-it-does) · [Quick start](#quick-start) ·
 [Using it](#using-it) · [Evaluating the target](#evaluating-the-target) ·
 [Project layout](#project-layout) · [Troubleshooting](#troubleshooting) ·
-[Further reading](#further-reading)
+[Tool substitutions](#tool-substitutions) · [Further reading](#further-reading)
 
 ---
 
@@ -276,7 +276,7 @@ rather than faked.
 |---|---|
 | AWS credentials (the usual chain) | the guardrails |
 | `GROQ_API_KEY` | the LLM judge, and the RAGAS evaluator when `OPENAI_API_KEY` is unset |
-| `OPENAI_API_KEY` | the RAGAS evaluator. Optional — without it RAGAS falls back to Groq, whose free tier caps this account at 200,000 tokens a day, which one full run very nearly spends |
+| `OPENAI_API_KEY` | the RAGAS evaluator. Optional — without it RAGAS falls back to Groq. [Why it moved](docs/design.md#which-models-and-why) |
 | `LANGSMITH_API_KEY` + `LANGSMITH_TRACING=true` | tracing |
 
 `LANGSMITH_PROJECT` is deliberately not set: it is derived from the target, so both
@@ -342,31 +342,20 @@ per-question breakdown, which checks failed, and how many requests the guardrail
 
 Thresholds live in `report.py` and are fixed independently of any run.
 
-**The current verdict is FAIL**, on two of the seven signals. Both are worth reading as
-the pipeline doing its job rather than as a broken pipeline.
+**The current verdict is FAIL**, on one of the seven signals — and the failure is the
+pipeline doing its job.
 
-**`heuristics_pass_rate` 0.979 against 1.00** — two cases where the target behaved
-differently from its label:
+**`heuristics_pass_rate` 0.990 against 1.00.** One case of 20 fails: asked *"Which insurer
+has the most approved claims?"*, the target returns *"I could not form a database query
+from that question"* instead of an answer. Measured across repeated attempts, against the
+target directly and through the pipeline, it fails roughly half the time. That is an
+intermittent defect in the system being watched, found by the layer built to watch it.
 
-- **`hand-hygiene` was blocked by the output grounding check.** The question asks for the
-  protocol *before entering the ICU*. The corpus has no such protocol: it documents the WHO
-  "Five Moments of Hand Hygiene" (before patient contact, before an aseptic procedure) and
-  ICU SOPs that each begin with a hand-hygiene step. The answer quoted those passages
-  correctly and then extrapolated to a rule for entering the unit, which they do not state.
-  Grounding scored the extrapolation below threshold and withheld the answer. The case is
-  labelled `answered`, so the harness records a mismatch, and the mismatch is the evidence.
-- **`claims-by-insurer`** — the target could not turn the question into a database query
-  that run. A genuine miss.
+Every model-scored signal passes: faithfulness 0.997, answer relevancy 0.708, context
+precision 0.986, context recall 1.000, judge mean 0.969, and all three judge probes caught.
 
-**`answer_relevancy` 0.695 against a 0.70 threshold.** The threshold is derived from this
-system's own distribution, as RAGAS' guidance advises, because the metric's conventional
-0.80 sits above every score this target has ever produced and so could never detect a
-regression. Four explanations for the low score were tested and eliminated — citation
-markers, verbosity, retrieved contexts, and the evaluator's `strictness` setting — before
-the number was accepted as real.
-
-Both are set out in **[docs/findings.md](docs/findings.md)**, with the measurements behind
-them. A pipeline whose report always said PASS would be the one worth distrusting.
+The detail is in **[docs/findings.md](docs/findings.md)**. A pipeline whose report always
+said PASS would be the one worth distrusting.
 
 #### Sample report output
 
@@ -374,22 +363,22 @@ Generated into this file by the same run that writes the report, so the two cann
 
 <!-- report:start -->
 
-## Verdict: **FAIL**
+#### Verdict: **FAIL**
 
 Failed thresholds:
 
-- **heuristics_pass_rate** 0.98 below 1.00
+- **heuristics_pass_rate** 0.99 below 1.00
 
-## Signals
+#### Signals
 
 | signal | value | must clear | basis | status | coverage |
 |---|---|---|---|---|---|
-| heuristics_pass_rate | 0.980 | 1.00 | fixed | FAIL | 96/98 applicable checks |
-| faithfulness | 0.996 | 0.90 | baseline 0.950 − 0.05 | pass | 11/11 eligible cases scored |
-| answer_relevancy | 0.707 | 0.65 | baseline 0.704 − 0.05 | pass | 11/11 eligible cases scored |
-| context_precision | 0.985 | 0.94 | baseline 0.985 − 0.05 | pass | 11/11 eligible cases scored |
-| context_recall | 1.000 | 0.95 | baseline 1.000 − 0.05 | pass | 11/11 eligible cases scored |
-| judge_mean | 0.967 | 0.92 | baseline 0.967 − 0.05 | pass | 15/15 gradable cases graded |
+| heuristics_pass_rate | 0.990 | 1.00 | fixed | FAIL | 99/100 applicable checks |
+| faithfulness | 0.997 | 0.95 | baseline 0.997 − 0.05 | pass | 12/12 eligible cases scored |
+| answer_relevancy | 0.708 | 0.66 | baseline 0.708 − 0.05 | pass | 12/12 eligible cases scored |
+| context_precision | 0.986 | 0.94 | baseline 0.986 − 0.05 | pass | 12/12 eligible cases scored |
+| context_recall | 1.000 | 0.95 | baseline 1.000 − 0.05 | pass | 12/12 eligible cases scored |
+| judge_mean | 0.969 | 0.92 | baseline 0.969 − 0.05 | pass | 16/16 gradable cases graded |
 | probes_caught | 1.000 | 1.00 | fixed | pass | 3 probes |
 
 **Where the lines come from.** The deterministic signals are judged against a fixed bar: every heuristic must pass, and every probe must be caught.
@@ -468,6 +457,16 @@ test suite, and vice versa. This pipeline's own tests are unaffected.
 
 ---
 
+## Tool substitutions
+
+| named in the spec | used here | why |
+|---|---|---|
+| OpenEvals and/or Bedrock Guardrails, for at least one guardrail layer | **Bedrock Guardrails, both layers** | the course's three guardrail approaches are all input-only, one is hand-rolled, and NeMo's verdict is a model replying `"Yes"`/`"No"` — the pattern the spec forbids. Bedrock returns a typed enum with the policy that fired, covers input and output from one API, and costs no provider tokens |
+| LLM-as-a-judge | **`qwen/qwen3.8-27b`**, called directly | a direct call gives a guaranteed JSON schema over the four named dimensions and one fewer layer between the rubric and the score. The OpenEvals dependency was removed rather than left declared and unimported |
+| RAGAS | **RAGAS 0.4.3**, as named | pinned with `langchain-community<0.4`: the current release still imports `langchain_community.chat_models.vertexai`, which 0.4.x moved, so importing ragas at all fails otherwise |
+
+---
+
 ## Further reading
 
 | | |
@@ -479,11 +478,3 @@ test suite, and vice versa. This pipeline's own tests are unaffected.
 | **[docs/measurements/](docs/measurements/)** | the raw JSON behind the threshold, topic, comparison and acceptance measurements |
 
 ---
-
-## Tool substitutions
-
-| named in the spec | used here | why |
-|---|---|---|
-| OpenEvals and/or Bedrock Guardrails, for at least one guardrail layer | **Bedrock Guardrails, both layers** | the course's three guardrail approaches are all input-only, one is hand-rolled, and NeMo's verdict is a model replying `"Yes"`/`"No"` — the pattern the spec forbids. Bedrock returns a typed enum with the policy that fired, covers input and output from one API, and costs no provider tokens |
-| LLM-as-a-judge | **`qwen/qwen3.8-27b`**, called directly | a direct call gives a guaranteed JSON schema over the four named dimensions and one fewer layer between the rubric and the score. The OpenEvals dependency was removed rather than left declared and unimported |
-| RAGAS | **RAGAS 0.4.3**, as named | pinned with `langchain-community<0.4`: the current release still imports `langchain_community.chat_models.vertexai`, which 0.4.x moved, so importing ragas at all fails otherwise |
