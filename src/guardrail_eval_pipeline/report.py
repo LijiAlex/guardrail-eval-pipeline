@@ -70,6 +70,35 @@ MEANING = {
 }
 
 
+# A drop of this much below the last recorded figure is a regression. Chosen as a starting
+# value rather than derived: it needs several clean runs of the same configuration to
+# measure the run-to-run spread, and the published advice is explicit that the gate belongs
+# OUTSIDE that spread. Tighten it once the spread is known.
+TOLERANCE = 0.05
+
+BASELINE_FILE = Path(__file__).resolve().parents[2] / "docs" / "measurements" / "baseline.json"
+
+
+def baselines() -> dict[str, float]:
+    """The figures the last recorded run reached, per metric.
+
+    Gating on a drop from this, rather than on a fixed number, is what the practice
+    guidance recommends for scores whose absolute level is a property of the metric: it
+    catches the system getting worse without asserting that any particular level is good.
+
+    The file is updated deliberately, with `scripts/evaluate.py --set-baseline`, so a
+    regression cannot quietly become the new normal by being measured twice.
+    """
+    import json
+    if not BASELINE_FILE.is_file():
+        return {}
+    try:
+        return {k: v for k, v in (json.loads(BASELINE_FILE.read_text()).get("signals") or {}).items()
+                if isinstance(v, (int, float))}
+    except (ValueError, OSError):
+        return {}
+
+
 @dataclass
 class Section:
     name: str
@@ -84,6 +113,20 @@ class Section:
 
     scored: int = 0
     eligible: int = 0
+    # The figure this metric last recorded, and how far it may fall before that counts as a
+    # regression. Set for the model-scored metrics, whose absolute level says more about the
+    # metric than about the system: `answer_relevancy` reads ~0.70 for answers the judge
+    # grades 0.89, and the same answer scored 0.726 and 0.930 on two draws. A fixed line
+    # near that mean fires on sampling noise. A drop from the last recorded figure does not.
+    baseline: float | None = None
+    tolerance: float | None = None
+
+    @property
+    def gate(self) -> float | None:
+        """The line this value must clear, and where it came from."""
+        if self.baseline is not None and self.tolerance is not None:
+            return round(self.baseline - self.tolerance, 3)
+        return self.threshold
 
     @property
     def status(self) -> str:
@@ -91,9 +134,10 @@ class Section:
             return "unavailable"
         if self.eligible and self.scored / self.eligible < self.MINIMUM_COVERAGE:
             return "insufficient"
-        if self.threshold is None:
+        gate = self.gate
+        if gate is None:
             return "reported"
-        return "pass" if self.value >= self.threshold else "FAIL"
+        return "pass" if self.value >= gate else "FAIL"
 
 
 def _heuristics(run) -> tuple[Section, list[str], dict[str, tuple[int, int, int]]]:
@@ -130,11 +174,49 @@ def _guardrail_counts(target: str) -> dict[str, int]:
 
 
 
-def build(run, dataset) -> str:
-    """The report, as Markdown."""
-    sections: list[Section] = []
-    heuristic_section, failures, check_counts = _heuristics(run)
-    sections.append(heuristic_section)
+def write_baseline(run, dataset) -> list[str]:
+    """Record this run's model-scored figures as the line later runs are judged against.
+
+    Only metrics with enough coverage to mean anything are written: a figure from a run
+    that scored three of eleven cases would set a line the next full run trips over for no
+    reason. Everything else is left at whatever was recorded before.
+    """
+    import json
+    from datetime import datetime, timezone
+
+    current = {}
+    if BASELINE_FILE.is_file():
+        try:
+            current = json.loads(BASELINE_FILE.read_text())
+        except ValueError:
+            current = {}
+    signals = dict(current.get("signals") or {})
+
+    written = []
+    for section in _signal_sections(run):
+        if section.value is None or section.status == "insufficient":
+            continue
+        if section.name in ("heuristics_pass_rate", "probes_caught"):
+            continue          # deterministic: a fixed bar, not a moving one
+        signals[section.name] = round(section.value, 3)
+        written.append(section.name)
+
+    BASELINE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    BASELINE_FILE.write_text(json.dumps({
+        "recorded": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "note": ("Figures the model-scored metrics last reached. A later run fails when it "
+                 "drops more than the tolerance in report.py below one of these. Written "
+                 "only by `scripts/evaluate.py --set-baseline`."),
+        "signals": signals,
+    }, indent=2) + "\n")
+    return written
+
+
+def _signal_sections(run) -> list[Section]:
+    """Every signal, with the line it has to clear. Shared by the report and the baseline
+    writer so the two cannot disagree about what a signal scored."""
+    recorded = baselines()
+    sections = [_heuristics(run)[0]]
 
     for metric in METRICS:
         value = run.ragas_aggregate.get(metric)
@@ -145,17 +227,35 @@ def build(run, dataset) -> str:
         if eligible and scored < eligible:
             detail += " — incomplete"
         sections.append(Section(metric, value, THRESHOLDS[metric], detail,
-                                scored=scored, eligible=eligible))
+                                scored=scored, eligible=eligible,
+                                baseline=recorded.get(metric),
+                                tolerance=TOLERANCE if metric in recorded else None))
 
     judged = [c.judge.get("mean") for c in run.cases
               if isinstance(c.judge, dict) and isinstance(c.judge.get("mean"), (int, float))]
+    # A case the guardrail blocked has no answer to grade, so it is not a gradable case and
+    # does not belong in the denominator. Everything else does: without that count, a run
+    # where the provider died after two cases reports a confident mean over two cases.
+    gradable = sum(1 for c in run.cases if c.observed != "blocked")
     sections.append(Section("judge_mean", sum(judged) / len(judged) if judged else None,
-                            THRESHOLDS["judge_mean"], f"{len(judged)} cases graded"))
+                            THRESHOLDS["judge_mean"],
+                            f"{len(judged)}/{gradable} gradable cases graded"
+                            + (" — incomplete" if len(judged) < gradable else ""),
+                            scored=len(judged), eligible=gradable,
+                            baseline=recorded.get("judge_mean"),
+                            tolerance=TOLERANCE if "judge_mean" in recorded else None))
 
     caught = [p for p in run.probes if "caught" in p]
     probe_rate = (sum(1 for p in caught if p["caught"]) / len(caught)) if caught else None
     sections.append(Section("probes_caught", probe_rate, THRESHOLDS["probes_caught"],
                             f"{len(caught)} probes"))
+    return sections
+
+
+def build(run, dataset) -> str:
+    """The report, as Markdown."""
+    sections = _signal_sections(run)
+    _, failures, check_counts = _heuristics(run)
 
     failed = [s for s in sections if s.status == "FAIL"]
     unavailable = [s for s in sections if s.status in ("unavailable", "insufficient")]
@@ -216,7 +316,9 @@ def build(run, dataset) -> str:
     ]
     if failed:
         lines += ["Failed thresholds:", ""]
-        lines += [f"- **{s.name}** {s.value:.2f} below {s.threshold:.2f}" for s in failed]
+        lines += [f"- **{s.name}** {s.value:.2f} below {s.gate:.2f}"
+                  + (f" (last recorded {s.baseline:.3f})" if s.baseline is not None else "")
+                  for s in failed]
         lines.append("")
     if unavailable:
         lines += [
@@ -229,12 +331,36 @@ def build(run, dataset) -> str:
         lines.append("")
 
     lines += ["## Signals", "",
-              "| signal | value | threshold | status | coverage |", "|---|---|---|---|---|"]
+              "| signal | value | must clear | basis | status | coverage |",
+              "|---|---|---|---|---|---|"]
     for s in sections:
         value = "—" if s.value is None else f"{s.value:.3f}"
-        threshold = "—" if s.threshold is None else f"{s.threshold:.2f}"
-        lines.append(f"| {s.name} | {value} | {threshold} | {s.status} | {s.detail} |")
-    lines.append("")
+        gate = "—" if s.gate is None else f"{s.gate:.2f}"
+        basis = (f"baseline {s.baseline:.3f} − {s.tolerance:.2f}"
+                 if s.baseline is not None and s.tolerance is not None else "fixed")
+        lines.append(f"| {s.name} | {value} | {gate} | {basis} | {s.status} | {s.detail} |")
+    moving = [s for s in sections if s.baseline is not None]
+    lines += ["",
+              "**Where the lines come from.** The deterministic signals are judged against a "
+              "fixed bar: every heuristic must pass, and every probe must be caught.",
+              "",
+              "The model-scored metrics are meant to be judged against the figure they last "
+              f"recorded, less {TOLERANCE:.2f}. Their absolute level says as much about the "
+              "metric as about the system — `answer_relevancy` reads about 0.70 for answers "
+              "the judge grades 0.89, and the same answer has scored 0.726 and 0.930 on two "
+              "draws — so a fixed line near that mean fires on sampling noise, while a drop "
+              "from the last recorded figure does not.",
+              ""]
+    if moving:
+        lines += [f"{len(moving)} of them have a recorded figure to measure against; the "
+                  "rest fall back on the fixed line until one is recorded. Baselines live "
+                  "in `docs/measurements/baseline.json` and move only when "
+                  "`scripts/evaluate.py --set-baseline` is run.", ""]
+    else:
+        lines += ["**No baseline has been recorded yet**, so every line below is still the "
+                  "fixed one, including the marginal `answer_relevancy` bar this is meant to "
+                  "replace. Record one from a run with full coverage: "
+                  "`scripts/evaluate.py --reuse runs/latest.json --set-baseline`.", ""]
 
     by_version: dict[str, int] = {}
     for row in events.read(run.target):
@@ -370,7 +496,10 @@ def build(run, dataset) -> str:
               f"| guardrail versions in the event log | {', '.join(sorted(v or '?' for v in policy)) or '—'} |",
               "| evaluation set | `evaluation/" + f"{run.target}.yaml` |",
               f"| judge | `{judge_module.JUDGE_MODEL}` |",
-              f"| RAGAS evaluator | `{ragas_metrics.EVALUATOR_MODEL}` |",
+              f"| RAGAS evaluator | `{ragas_metrics.EVALUATOR_MODEL}`, "
+              f"`answer_relevancy.strictness={ragas_metrics.ANSWER_RELEVANCY_STRICTNESS}` "
+              f"(RAGAS' default is 3; see docs/measurements/strictness.json), "
+              f"`max_tokens={ragas_metrics.EVALUATOR_MAX_TOKENS}` |",
               f"| RAGAS embeddings | `{ragas_metrics.EMBEDDING_MODEL}` |",
               "| saved answers | `runs/latest.json` |",
               "| raw measurements | `docs/measurements/` |",

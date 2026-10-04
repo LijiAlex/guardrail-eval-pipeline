@@ -33,6 +33,9 @@ def main() -> int:
     parser.add_argument("--run-file", default="runs/latest.json")
     parser.add_argument("--reuse", help="score a saved run instead of asking the target")
     parser.add_argument("--skip-ragas", action="store_true")
+    parser.add_argument("--set-baseline", action="store_true",
+                        help="record this run's model-scored figures as the baseline "
+                             "later runs are judged against")
     parser.add_argument("--skip-judge", action="store_true")
     parser.add_argument("--pace", type=float, default=6.0,
                         help="seconds between model calls, for the provider's rate limit")
@@ -77,6 +80,12 @@ def main() -> int:
     # report is what keeps the two from disagreeing.
     if report.update_readme(ROOT / "README.md", text):
         print("README sample block refreshed from this report")
+
+    if args.set_baseline:
+        # Deliberate, never automatic: a baseline that updated itself on every run would
+        # let the system decline indefinitely, one tolerated step at a time.
+        written = report.write_baseline(run, dataset)
+        print(f"baseline recorded for {', '.join(written)}")
 
     verdict = next(line for line in text.splitlines() if line.startswith("## Verdict"))
     print(f"\n{verdict}\nreport written to {args.out}")

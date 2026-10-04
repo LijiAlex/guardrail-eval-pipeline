@@ -393,3 +393,37 @@ def test_one_failure_marks_every_scorable_case(monkeypatch):
     results = ragas_metrics.score([outcome(), outcome()])
     assert all(not r.usable for r in results)
     assert all("provider refused" in r.unavailable for r in results)
+
+
+# --- the regression gate ------------------------------------------------------------
+#
+# A fixed line near the mean of a noisy metric fires on sampling noise: `answer_relevancy`
+# scored 0.726 and 0.930 for the same answer on two draws. These pin the alternative — a
+# drop from the figure last recorded.
+
+def test_a_metric_with_a_baseline_is_judged_against_the_drop_not_the_fixed_line():
+    section = report.Section("answer_relevancy", 0.69, threshold=0.80,
+                             baseline=0.718, tolerance=0.05)
+    assert section.gate == 0.668
+    assert section.status == "pass"          # a dip inside tolerance is not a regression
+
+
+def test_a_drop_past_the_tolerance_fails():
+    section = report.Section("answer_relevancy", 0.60, threshold=0.80,
+                             baseline=0.718, tolerance=0.05)
+    assert section.status == "FAIL"
+
+
+def test_without_a_baseline_the_fixed_line_still_applies():
+    """Deterministic signals never get a moving line, and a metric with no recorded
+    figure yet has to fall back on something."""
+    assert report.Section("heuristics_pass_rate", 0.98, threshold=1.00).status == "FAIL"
+    assert report.Section("judge_mean", 0.75, threshold=0.70).status == "pass"
+
+
+def test_a_mean_over_too_few_cases_is_insufficient_not_a_pass():
+    """The run where the provider died after two cases reported judge_mean 1.000 as a
+    pass. Coverage is what stops two cases becoming a verdict."""
+    section = report.Section("judge_mean", 1.0, threshold=0.70, scored=2, eligible=16)
+    assert section.status == "insufficient"
+

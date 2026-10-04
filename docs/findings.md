@@ -182,8 +182,17 @@ identical to ten decimal places across several cases, is structural rather than
 coincidental: it decodes as "only the second retrieved passage was relevant". Two cases
 scoring it were label defects — `cannula-size` asked for a cannula size against an expected
 answer describing site selection, and `cashless-claim` quoted the reimbursement process
-instead of the cashless one. Both were rewritten from source. A third, `fault-f05`, is a
-genuine retrieval finding: the useful passage ranked second.
+instead of the cashless one. Both were rewritten from source.
+
+A third label was wrong for a different reason, and the metric did not catch it — reading
+the source did. `fault-f05` asked what F-05 means on the infusion pump, and the expected
+answer asserted that F-05 is not an infusion-pump code at all but belongs to the RadiPro
+MX-150 X-ray unit. The manual uses the code **twice**: "Door open" under the DriveFlow
+IP-200 infusion pump, and "Battery below 20%" under the X-ray unit. The target's answer,
+"Door open", was correct; the label was written on a false premise, and this project
+reported it as a defect in the target for several days. It is now labelled as what it
+actually tests: whether retrieval picks the passage matching the device named in the
+question when two passages carry the same code.
 
 
 ---
@@ -243,9 +252,11 @@ differed from their label:
 | `claims-by-insurer` | `answered` | `target_refused` | the target replied "I could not form a database query from that question" |
 
 Neither is a pipeline defect. The first is the grounding check working: that case is hard on
-purpose, and the target reaches for the WHO "Five Moments of Hand Hygiene", a phrase in none
-of its passages. Whether the resulting answer lands above or below the threshold varies
-between runs. The second is the target failing to generate SQL on the day.
+purpose: the question asks for a protocol *before entering the ICU*, and the corpus has
+none. It documents the WHO "Five Moments" (before patient contact, before an aseptic
+procedure) and ICU SOPs that begin with hand hygiene. The answer quotes those passages
+correctly — they ARE retrieved — and then extrapolates to a rule for entering the unit.
+Whether that extrapolation lands above or below the threshold varies between runs. The second is the target failing to generate SQL on the day.
 
 A labelled set expects one behaviour per case, and a language model does not guarantee one.
 That is why `--reuse` exists: repeatability belongs to the scoring, not to the generation,

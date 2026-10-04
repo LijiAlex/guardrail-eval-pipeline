@@ -173,9 +173,12 @@ a space.
 At `0.75` against raw answers, 3 of 11 correct answers would have been blocked. The chosen
 `0.50` sits near the middle of the measured gap.
 
-One of the three was not punctuation: the hand-hygiene answer asserts the WHO "Five Moments
-of Hand Hygiene", a phrase in none of the retrieved passages, and scores lowest of the
-eleven even normalised. That is the behaviour the filter exists to catch.
+One of the three was not punctuation. The hand-hygiene question asks for the protocol
+*before entering the ICU*; the passages document the WHO "Five Moments" (before patient
+contact, before an aseptic procedure) and ICU SOPs that begin with hand hygiene, but no
+rule for entering the unit. The answer quotes them and extrapolates, and scores lowest of
+the eleven even normalised. Extrapolation past the passages is the behaviour the filter
+exists to catch.
 
 ### Acceptance
 
@@ -551,10 +554,11 @@ nurse              refusal=role   sources=0   This looks like a question for bil
 ```
 
 **Three cases are hard on purpose**, because faithfulness and relevancy look fine on easy
-questions. The hand-hygiene case is the clearest: the target cites the WHO "Five Moments of
-Hand Hygiene", a phrase in none of the retrieved passages — a correct-sounding answer its
-sources do not support. The F-05 case names the wrong device, to see whether the answer
-accepts a false premise.
+questions. The hand-hygiene case is the clearest: the corpus documents hand hygiene before
+patient contact, and the question asks for a protocol before entering the ICU, so a
+correct-sounding answer has to extrapolate past what the passages state. The F-05 case turns on a code the manual uses twice, for two
+different devices, so retrieval has to pick the passage matching the device named in the
+question rather than the first passage carrying the code.
 
 **Probes test the judge, not the system.** Three fixed answers that never reach the target:
 a confidently wrong dosage, a right answer with an invented citation, and a correct refusal.

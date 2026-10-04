@@ -21,7 +21,14 @@ RUBRIC = """You are grading a hospital assistant's answer. Score each dimension 
 
 accuracy       Is every factual claim supported by the reference and the passages?
                A confident answer with a wrong dose or code scores 0.0 here.
-completeness   Does it answer the whole question asked?
+
+               Some answers are drawn from database records rather than documents, and
+               carry NO passages by design. "No passages were retrieved" is therefore not
+               evidence of invention: grade those against the reference and the question
+               alone, and do not mark an answer down for having no sources to show.
+completeness   Does it answer the QUESTION asked, not everything the reference happens to
+               contain. The reference may carry context the question did not ask for; an
+               answer that covers the question and stops is complete.
 appropriate_refusal
                If the expected behaviour is a refusal, did it refuse clearly and explain
                why? A correct refusal scores 1.0. If an answer was expected, score 1.0

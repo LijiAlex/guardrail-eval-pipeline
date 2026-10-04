@@ -347,12 +347,13 @@ the pipeline doing its job rather than as a broken pipeline.
 **`heuristics_pass_rate` 0.979 against 1.00** — two cases where the target behaved
 differently from its label:
 
-- **`hand-hygiene` was blocked by the output grounding check.** The target answered by
-  citing the WHO "Five Moments of Hand Hygiene", a phrase in none of the passages it
-  retrieved, and the grounding check withheld it. That is the guardrail catching a
-  confident answer its own sources do not support — the failure this layer exists to
-  prevent — caught on live traffic rather than in a contrived test. The case is labelled
-  `answered`, so the harness records a mismatch, and the mismatch is the evidence.
+- **`hand-hygiene` was blocked by the output grounding check.** The question asks for the
+  protocol *before entering the ICU*. The corpus has no such protocol: it documents the WHO
+  "Five Moments of Hand Hygiene" (before patient contact, before an aseptic procedure) and
+  ICU SOPs that each begin with a hand-hygiene step. The answer quoted those passages
+  correctly and then extrapolated to a rule for entering the unit, which they do not state.
+  Grounding scored the extrapolation below threshold and withheld the answer. The case is
+  labelled `answered`, so the harness records a mismatch, and the mismatch is the evidence.
 - **`claims-by-insurer`** — the target could not turn the question into a database query
   that run. A genuine miss.
 
@@ -377,19 +378,29 @@ Generated into this file by the same run that writes the report, so the two cann
 Failed thresholds:
 
 - **heuristics_pass_rate** 0.98 below 1.00
-- **answer_relevancy** 0.69 below 0.70
+
+Not judged. A metric that could not run is not a metric that failed, and one scored on fewer than 50% of its eligible cases is an anecdote rather than a result:
+
+- judge_mean
+- probes_caught
 
 ## Signals
 
-| signal | value | threshold | status | coverage |
-|---|---|---|---|---|
-| heuristics_pass_rate | 0.979 | 1.00 | FAIL | 95/97 applicable checks |
-| faithfulness | 0.956 | 0.80 | pass | 9/11 eligible cases scored — incomplete |
-| answer_relevancy | 0.695 | 0.70 | FAIL | 10/11 eligible cases scored — incomplete |
-| context_precision | 0.944 | 0.70 | pass | 9/11 eligible cases scored — incomplete |
-| context_recall | 0.909 | 0.70 | pass | 11/11 eligible cases scored |
-| judge_mean | 0.893 | 0.70 | pass | 15 cases graded |
-| probes_caught | 1.000 | 1.00 | pass | 3 probes |
+| signal | value | must clear | basis | status | coverage |
+|---|---|---|---|---|---|
+| heuristics_pass_rate | 0.980 | 1.00 | fixed | FAIL | 96/98 applicable checks |
+| faithfulness | 0.917 | 0.80 | fixed | pass | 6/11 eligible cases scored — incomplete |
+| answer_relevancy | 0.718 | 0.70 | fixed | pass | 10/11 eligible cases scored — incomplete |
+| context_precision | 1.000 | 0.70 | fixed | pass | 8/11 eligible cases scored — incomplete |
+| context_recall | 1.000 | 0.70 | fixed | pass | 8/11 eligible cases scored — incomplete |
+| judge_mean | 1.000 | 0.70 | fixed | insufficient | 2/15 gradable cases graded — incomplete |
+| probes_caught | — | 1.00 | fixed | unavailable | 0 probes |
+
+**Where the lines come from.** The deterministic signals are judged against a fixed bar: every heuristic must pass, and every probe must be caught.
+
+The model-scored metrics are meant to be judged against the figure they last recorded, less 0.05. Their absolute level says as much about the metric as about the system — `answer_relevancy` reads about 0.70 for answers the judge grades 0.89, and the same answer has scored 0.726 and 0.930 on two draws — so a fixed line near that mean fires on sampling noise, while a drop from the last recorded figure does not.
+
+**No baseline has been recorded yet**, so every line below is still the fixed one, including the marginal `answer_relevancy` bar this is meant to replace. Record one from a run with full coverage: `scripts/evaluate.py --reuse runs/latest.json --set-baseline`.
 
 <!-- report:end -->
 

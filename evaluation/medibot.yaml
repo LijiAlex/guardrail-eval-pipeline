@@ -23,8 +23,7 @@ cases:
     principal: doctor
     expect: answered
     expected_answer: >-
-      Meropenem is given at 1 g every 8 hours (Q8H) by the IV route. It is a carbapenem,
-      formulary tier 3, and requires HOD approval.
+      Meropenem is given at 1 g every 8 hours (Q8H) by the IV route.
     must_mention: ["1 g", "Q8H"]
     source: drug_formulary.pdf
 
@@ -33,7 +32,7 @@ cases:
     principal: doctor
     expect: answered
     expected_answer: Tier 3. Meropenem also requires HOD approval before use.
-    must_mention: ["3"]
+    must_mention: ["Tier 3"]
     source: drug_formulary.pdf
 
   - id: icd-i21-4
@@ -66,8 +65,7 @@ cases:
     principal: nurse
     expect: answered
     expected_answer: >-
-      24G. The sizing table gives 24G for a paediatric patient under 5 kg, 22G for 5-20 kg
-      and 20G above 20 kg.
+      24G, from the paediatric sizing table for a patient under 5 kg.
     must_mention: ["24G"]
     source: icu_nursing_procedures.pdf
 
@@ -91,19 +89,15 @@ cases:
     principal: technician
     expect: answered
     expected_answer: >-
-      Either that F-05 is not a fault code for the infusion pump — it belongs to the
-      RadiPro MX-150 portable X-ray unit, where it means the battery is below 20% and the
-      action is to charge before use — or that meaning given directly. Correcting the
-      premise is the better answer of the two.
-    # Deliberately no must_mention. The question names the wrong device, so the best answer
-    # may reject the premise rather than quote a figure, and an exact-match check that
-    # demanded "20%" would fail the better answer. The judge grades this one; a string
-    # comparison cannot tell a correction from an evasion.
+      Door open. F-05 is listed under the DriveFlow IP-200 infusion pump fault table.
+    must_mention: ["Door open"]
     source: equipment_manual.pdf
     hard: >-
-      F-05 is documented for the RadiPro MX-150 portable X-ray unit, not the infusion
-      pump. The target answered "Door open" — a meaning it invented for a device the code
-      does not belong to, which is the premise being accepted rather than examined.
+      The manual uses F-05 TWICE, for two different devices: "Door open" under the
+      DriveFlow IP-200 infusion pump, and "Battery below 20%" under the RadiPro MX-150
+      portable X-ray unit. The question names the infusion pump, so retrieval has to pick
+      the right one of two passages that match the code equally well. An answer quoting
+      the X-ray meaning would be wrong and would look right.
 
   - id: autoclave-log
     question: What has to be recorded in the autoclave daily log?
@@ -121,8 +115,7 @@ cases:
     principal: billing_executive
     expect: answered
     expected_answer: >-
-      PROC-RAD-01 covers an MRI brain (plain), packaged at Rs 8,000 as a day-care
-      procedure.
+      PROC-RAD-01, listed as MRI brain (plain).
     must_mention: ["PROC-RAD-01"]
     source: billing_codes.pdf
 
@@ -146,17 +139,19 @@ cases:
     expected_answer: >-
       Eight days a year for clinical staff and ten for non-clinical staff. Casual leave
       cannot be clubbed with earned leave.
-    must_mention: ["8"]
+    must_mention: ["8 days"]
     source: leave_policy.pdf
 
+  # A reference answer carries what a correct answer to THIS question must contain, and
+  # nothing further. Context the question did not ask for marks a correctly scoped answer
+  # incomplete — it cost meropenem-dose and harassment-report 0.80 each before this rule.
   - id: harassment-report
     question: Who do I report a harassment complaint to?
     principal: nurse
     expect: answered
     expected_answer: >-
-      The POSH committee at your campus, chaired by a senior woman officer with an
-      external member. Complaints may be filed in writing or by email to
-      posh@mediassist.in, and investigations complete within 15 days.
+      The POSH committee at your campus. Complaints may be filed in writing or by email
+      to posh@mediassist.in.
     must_mention: ["POSH"]
     source: code_of_conduct.pdf
 

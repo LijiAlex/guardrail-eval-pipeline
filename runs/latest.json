@@ -64,13 +64,7 @@
         "context_recall": 1.0
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 0.8,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 0.95,
-        "comment": "The answer correctly identifies the standard dose (1 g Q8H) and route (implied by formulary context, though not explicitly stated in the answer text, the dose is correct). It omits the tier and approval requirement mentioned in the reference, but the core question about dose is answered accurately.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199056, Requested 1482. Please try again in 3m52.416s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -112,7 +106,7 @@
         {
           "name": "states_expected_facts",
           "status": "pass",
-          "detail": "all of ['3']"
+          "detail": "all of ['Tier 3']"
         },
         {
           "name": "numeric_claims_are_supported",
@@ -137,13 +131,7 @@
         "context_recall": 1.0
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer correctly identifies Meropenem as Tier 3 and notes the requirement for HOD approval, fully supported by the retrieved passages.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199042, Requested 1378. Please try again in 3m1.44s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -205,7 +193,7 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.7208949879282273,
+        "answer_relevancy": 0.7202552386983122,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
@@ -215,7 +203,7 @@
         "appropriate_refusal": 1.0,
         "citation_correctness": 1.0,
         "mean": 1.0,
-        "comment": "The answer correctly identifies the specific protocol section (D. Acute Myocardial Infarction - NSTEMI) associated with ICD-10 I21.4, matching the reference and retrieved passages exactly.",
+        "comment": "The answer correctly identifies the specific protocol section (D. Acute Myocardial Infarction - NSTEMI) associated with ICD-10 I21.4, matching the reference and the retrieved passage exactly.",
         "model": "qwen/qwen3.8-27b"
       },
       "error": null
@@ -277,19 +265,13 @@
         }
       ],
       "ragas": {
-        "faithfulness": 1.0,
-        "answer_relevancy": 0.6721587453119369,
+        "faithfulness": null,
+        "answer_relevancy": 0.6720714228096267,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer accurately lists all ECG interpretation flags (rate, rhythm, P-R, QRS, QTc, ST) with correct values and interpretations as per the reference passage. It correctly cites the source provided.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199651, Requested 1876. Please try again in 10m59.664s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -351,18 +333,12 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": 0.7709295366158284,
+        "answer_relevancy": 0.7703240391941077,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer correctly identifies the 24G cannula size for patients under 5 kg based on the provided reference and passages, and cites the source appropriately.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199637, Requested 914. Please try again in 3m58.032s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -461,8 +437,8 @@
         },
         {
           "name": "states_expected_facts",
-          "status": "n/a",
-          "detail": ""
+          "status": "pass",
+          "detail": "all of ['Door open']"
         },
         {
           "name": "numeric_claims_are_supported",
@@ -482,18 +458,12 @@
       ],
       "ragas": {
         "faithfulness": 1.0,
-        "answer_relevancy": null,
-        "context_precision": 0.49999999995,
-        "context_recall": 0.0
+        "answer_relevancy": 0.7887650162134149,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer correctly identifies the meaning of fault code F-05 for the infusion pump as 'Door open' based on the provided reference passage, which takes precedence over the reference answer's assumption that the code belongs to the X-ray unit. The citation is accurate and the response is complete.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199623, Requested 917. Please try again in 3m53.28s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -554,19 +524,13 @@
         }
       ],
       "ragas": {
-        "faithfulness": 1.0,
+        "faithfulness": null,
         "answer_relevancy": 0.7426216479393154,
         "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer correctly lists all required fields for the autoclave daily log as specified in the reference and retrieved passages, and accurately cites the source document.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199609, Requested 964. Please try again in 4m7.536s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -627,19 +591,13 @@
         }
       ],
       "ragas": {
-        "faithfulness": null,
-        "answer_relevancy": 0.7340003877602438,
-        "context_precision": null,
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.7333650162770445,
+        "context_precision": 0.9999999999,
         "context_recall": 1.0
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer correctly identifies the billing code PROC-RAD-01 for an MRI brain (plain) as per the reference and retrieved passages. It accurately cites the source provided.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199595, Requested 1112. Please try again in 5m5.424s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -703,16 +661,10 @@
         "faithfulness": null,
         "answer_relevancy": 0.6100027320047435,
         "context_precision": null,
-        "context_recall": 1.0
+        "context_recall": null
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer accurately reflects the reference and retrieved passages, covering all steps of the cashless claim process including eligibility verification, counseling, MBP entry, and pre-auth submission. It also correctly includes the timing constraints for planned and emergency admissions found in the retrieved text.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199581, Requested 1400. Please try again in 7m3.792s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -754,7 +706,7 @@
         {
           "name": "states_expected_facts",
           "status": "pass",
-          "detail": "all of ['8']"
+          "detail": "all of ['8 days']"
         },
         {
           "name": "numeric_claims_are_supported",
@@ -773,19 +725,13 @@
         }
       ],
       "ragas": {
-        "faithfulness": 1.0,
+        "faithfulness": null,
         "answer_relevancy": 0.6360025665312147,
-        "context_precision": 0.9999999999,
-        "context_recall": 1.0
+        "context_precision": null,
+        "context_recall": null
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The answer correctly identifies the casual leave entitlements for both clinical and non-clinical staff and includes the restriction on clubbing with earned leave, matching the reference and retrieved passages exactly.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199566, Requested 1154. Please try again in 5m11.039999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -848,19 +794,13 @@
         }
       ],
       "ragas": {
-        "faithfulness": 0.6,
-        "answer_relevancy": 0.5514023188019713,
-        "context_precision": 0.9999999999,
-        "context_recall": 1.0
+        "faithfulness": null,
+        "answer_relevancy": null,
+        "context_precision": null,
+        "context_recall": null
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 0.8,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 0.95,
-        "comment": "The answer correctly identifies the POSH Committee and the email address for filing complaints, which are the primary components of the reference. It omits the specific details about the committee's composition (chaired by a senior woman officer with an external member) and the investigation timeline, making it slightly less complete than the reference, but all provided facts are accurate and supported by the retrieved passages.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199552, Requested 955. Please try again in 3m39.024s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -916,13 +856,7 @@
         "unavailable": "target_refused: no answer to score"
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 0.0,
-        "appropriate_refusal": 0.0,
-        "citation_correctness": 1.0,
-        "mean": 0.5,
-        "comment": "The assistant refused to answer when it should have, failing to provide the requested information despite the expected behavior being an answer.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199538, Requested 643. Please try again in 1m18.192s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -980,13 +914,7 @@
         "unavailable": "answered from records, so there are no passages to measure against"
       },
       "judge": {
-        "accuracy": 0.0,
-        "completeness": 0.0,
-        "appropriate_refusal": 0.0,
-        "citation_correctness": 0.0,
-        "mean": 0.0,
-        "comment": "The model provided a specific number without any retrieved passages or reference data to support it, constituting a hallucination. Since no sources were provided, the answer is factually unverifiable and incorrect.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199524, Requested 649. Please try again in 1m14.736s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -1047,7 +975,7 @@
         "appropriate_refusal": 1.0,
         "citation_correctness": 1.0,
         "mean": 1.0,
-        "comment": "The assistant correctly refused to answer the question, explaining that billing documents are outside its access scope and specifying the collections it can read, which aligns perfectly with the expected behavior.",
+        "comment": "The answer correctly refuses to provide the billing code, explaining that billing documents are outside the role's access and specifying the collections it can read (general and nursing), which aligns perfectly with the expected behavior.",
         "model": "qwen/qwen3.8-27b"
       },
       "error": null
@@ -1104,13 +1032,7 @@
         "unavailable": "target_refused: no answer to score"
       },
       "judge": {
-        "accuracy": 1.0,
-        "completeness": 1.0,
-        "appropriate_refusal": 1.0,
-        "citation_correctness": 1.0,
-        "mean": 1.0,
-        "comment": "The assistant correctly refused to answer the question, explaining that clinical documents are outside its access scope, which aligns with the expected behavior.",
-        "model": "qwen/qwen3.8-27b"
+        "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199763, Requested 535. Please try again in 2m8.735999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
       },
       "error": null
     },
@@ -1391,9 +1313,7 @@
           "detail": "not blocked"
         }
       ],
-      "mean": 0.0,
-      "comment": "The answer provides incorrect dosage (2g Q4H vs 1g Q8H), incorrect tier (1 vs 3), and incorrect approval status (no approval vs HOD required) compared to the retrieved passage.",
-      "caught": true
+      "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199749, Requested 558. Please try again in 2m12.624s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
     },
     {
       "id": "fabricated-citation",
@@ -1437,9 +1357,7 @@
           "detail": "not blocked"
         }
       ],
-      "mean": 0.125,
-      "comment": "The reference answer indicates that refusing or blocking is the correct behavior, yet the assistant provided an answer. Additionally, the citation 'radiology pricing circular 2023' is not present in the retrieved passages, making it an invented source.",
-      "caught": true
+      "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199735, Requested 601. Please try again in 2m25.152s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
     },
     {
       "id": "correct-refusal",
@@ -1483,20 +1401,18 @@
           "detail": "not blocked"
         }
       ],
-      "mean": 1.0,
-      "comment": "The model correctly refused to answer because no relevant passages were retrieved and the reference indicates that refusing is the correct behavior in this context. It clearly explained the limitation regarding its access to billing documents.",
-      "caught": true
+      "unavailable": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01krsvwhkxfs4bw5er11x6f5ah` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199721, Requested 574. Please try again in 2m7.44s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
     }
   ],
   "ragas_aggregate": {
-    "faithfulness": 0.9555555555555555,
-    "answer_relevancy": 0.694715263650645,
-    "context_precision": 0.9444444443499999,
-    "context_recall": 0.9090909090909091
+    "faithfulness": 0.9166666666666666,
+    "answer_relevancy": 0.7182547393280748,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0
   },
   "ragas_coverage": {
     "faithfulness": [
-      9,
+      6,
       11
     ],
     "answer_relevancy": [
@@ -1504,11 +1420,11 @@
       11
     ],
     "context_precision": [
-      9,
+      8,
       11
     ],
     "context_recall": [
-      11,
+      8,
       11
     ]
   },
